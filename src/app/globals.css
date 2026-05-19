@@ -3,6 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Rasa/Emotion Palette */
+  --fear: #1a1a1a;
+  --joy: #ffd700;
+  --anger: #d32f2f;
+  --wonder: #8e44ad;
+  --disgust: #2e7d32;
+  --love: #ec407a;
+  --heroism: #ff8c00;
+  --sadness: #607d8b;
 }
 
 @theme inline {
