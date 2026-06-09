@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, BookOpen, Users, LogOut, Loader2, Search } from 'lucide-react'
+import { Plus, BookOpen, Users, Loader2 } from 'lucide-react'
 import { Class } from '@/types/database'
 import { generateClassCode } from '@/lib/utils'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { PillButton } from '@/components/ui/PillButton'
 
 export default function Dashboard() {
   const [classes, setClasses] = useState<Class[]>([])
@@ -15,173 +17,129 @@ export default function Dashboard() {
   const [newClassName, setNewClassName] = useState('')
   const router = useRouter()
 
-  useEffect(() => {
-    fetchClasses()
-  }, [])
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
-      // Try to get user first
       let { data: { user } } = await supabase.auth.getUser()
-      
-      // Fallback to session if user is null (can happen on initial load/sync)
       if (!user) {
         const { data: { session } } = await supabase.auth.getSession()
         user = session?.user || null
       }
-
       if (!user) {
-        console.warn('No user found in dashboard, redirecting to login...')
         router.push('/teacher/login')
         return
       }
-
       const { data, error } = await supabase
         .from('classes')
         .select('*')
         .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching classes:', error)
-      } else {
-        setClasses(data || [])
-      }
+      if (!error) setClasses(data || [])
     } catch (err) {
-      console.error('Unexpected dashboard error:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
 
-  const handleCreateClass = async (e: React.FormEvent) => {
+  useEffect(() => {
+    void fetchClasses() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [fetchClasses])
+
+  const handleCreateClass = async (e: FormEvent) => {
     e.preventDefault()
     setCreating(true)
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
     const classCode = generateClassCode()
-
     const { data, error } = await supabase
       .from('classes')
-      .insert([
-        { 
-          name: newClassName, 
-          teacher_id: user.id,
-          class_code: classCode
-        }
-      ])
+      .insert([{ name: newClassName, teacher_id: user.id, class_code: classCode }])
       .select()
-
-    if (error) {
-      alert('Error creating class: ' + error.message)
-    } else {
+    if (!error && data) {
       setNewClassName('')
-      if (data) setClasses([data[0], ...classes])
+      setClasses([data[0], ...classes])
     }
     setCreating(false)
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="w-10 h-10 animate-spin text-terracotta/60" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-purple-600" />
-          <span className="font-bold text-xl text-gray-900">Teacher Dashboard</span>
-        </div>
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors text-sm font-medium"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </button>
-      </nav>
-
-      <main className="max-w-6xl mx-auto p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Classes</h1>
-            <p className="text-gray-500 mt-1">Manage your active classes and view student progress.</p>
-          </div>
-
-          <form onSubmit={handleCreateClass} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter class name (e.g. English 101)"
-              value={newClassName}
-              onChange={(e) => setNewClassName(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none w-full md:w-64 text-gray-900"
-              required
-            />
-            <button
-              type="submit"
-              disabled={creating}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2 shrink-0 disabled:opacity-50"
-            >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Create Class
-            </button>
-          </form>
+    <div className="space-y-16 animate-in fade-in duration-1000">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="space-y-3">
+          <h1 className="text-5xl font-normal text-charcoal">Your Classes</h1>
+          <p className="text-warm-grey text-xl font-light">Manage your active classes and view student progress.</p>
         </div>
 
-        {classes.length === 0 ? (
-          <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
-            <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900">No classes yet</h3>
-            <p className="text-gray-500 max-w-xs mx-auto mt-2">
-              Start by creating your first class using the form above.
-            </p>
+        <GlassCard className="p-4 flex gap-4 items-center min-w-[450px] shadow-lg border-white/40">
+          <input
+            type="text"
+            placeholder="Class name (e.g. English 101)"
+            value={newClassName}
+            onChange={(e) => setNewClassName(e.target.value)}
+            className="flex-1 bg-white/30 border-none rounded-full px-8 py-4 text-charcoal placeholder:text-warm-grey/40 focus:ring-2 focus:ring-terracotta/20 outline-none text-lg transition-all"
+            required
+          />
+          <PillButton
+            onClick={handleCreateClass}
+            disabled={creating || !newClassName}
+            className="py-4 px-8 shrink-0 flex items-center justify-center min-w-[60px]"
+          >
+            {creating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
+          </PillButton>
+        </GlassCard>
+      </div>
+
+      {classes.length === 0 ? (
+        <GlassCard className="py-32 text-center border-dashed border-2 border-white/30 bg-white/10">
+          <div className="bg-white/40 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm backdrop-blur-sm">
+            <Users className="w-12 h-12 text-warm-grey/40" />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((cls) => (
-              <Link 
-                key={cls.id} 
-                href={`/teacher/class/${cls.id}`}
-                className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all group"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">
-                    {cls.name}
-                  </h3>
-                  <span className="bg-purple-50 text-purple-700 text-xs font-mono font-bold px-2 py-1 rounded border border-purple-100 uppercase">
-                    {cls.class_code}
-                  </span>
+          <h3 className="text-3xl text-charcoal font-light">No classes yet</h3>
+          <p className="text-warm-grey mt-3 text-lg">
+            Start by creating your first class using the portal above.
+          </p>
+        </GlassCard>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {classes.map((cls) => (
+            <Link key={cls.id} href={`/teacher/class/${cls.id}`}>
+              <GlassCard className="h-full p-10 hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden flex flex-col justify-between border-white/40 shadow-md">
+                {/* Decorative Background Artwork */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-terracotta/10 to-transparent -mr-20 -mt-20 blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+                
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-10">
+                    <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500 pr-4 font-normal leading-tight">
+                      {cls.name}
+                    </h3>
+                    <span className="glass bg-white/90 text-charcoal text-[10px] tracking-widest font-bold px-4 py-1.5 rounded-full border border-white/50 uppercase shadow-sm">
+                      {cls.class_code}
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <div className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4" />
-                    <span>View Texts</span>
+                <div className="flex items-center gap-8 text-sm text-warm-grey/80 relative z-10 font-medium">
+                  <div className="flex items-center gap-2.5 group-hover:text-charcoal transition-colors">
+                    <BookOpen className="w-5 h-5 text-terracotta/40" />
+                    <span>Texts</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4" />
-                    <span>View Students</span>
+                  <div className="flex items-center gap-2.5 group-hover:text-charcoal transition-colors">
+                    <Users className="w-5 h-5 text-terracotta/40" />
+                    <span>Students</span>
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </main>
+              </GlassCard>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

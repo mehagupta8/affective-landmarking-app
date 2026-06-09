@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Users, ArrowRight, Loader2, BookOpen, Lock } from 'lucide-react'
+import { ArrowRight, Loader2, BookOpen, Lock, ChevronLeft } from 'lucide-react'
 import { Class, Text } from '@/types/database'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { PillButton } from '@/components/ui/PillButton'
+import { Orb } from '@/components/ui/Orb'
+import Link from 'next/link'
 
 type JoinStep = 'code' | 'identity' | 'select-text'
 
@@ -20,14 +24,15 @@ export default function JoinPage() {
   // State for step 'identity'
   const [studentName, setStudentName] = useState('')
   const [pin, setPin] = useState('')
-  const [studentId, setStudentId] = useState<string | null>(null)
+  const [loginAttempts, setLoginAttempts] = useState(0)
   
   // State for step 'select-text'
   const [texts, setTexts] = useState<Text[]>([])
+  const [studentId, setStudentId] = useState<string | null>(null)
 
   const router = useRouter()
 
-  const handleVerifyCode = async (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -47,184 +52,200 @@ export default function JoinPage() {
     setLoading(false)
   }
 
-  const handleIdentify = async (e: React.FormEvent) => {
+  const handleAuth = async (e: FormEvent) => {
     e.preventDefault()
+    if (!/^\d{4}$/.test(pin)) {
+      setError('Please enter a valid 4-digit PIN.')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     if (!foundClass) return
 
-    // 1. Check if student already exists in this class
-    const { data: existingStudent, error: checkError } = await supabase
-      .from('students')
-      .select('*')
-      .eq('class_id', foundClass.id)
-      .eq('name', studentName.trim())
-      .single()
-
-    if (existingStudent) {
-      // If PIN exists, verify it
-      if (existingStudent.pin && existingStudent.pin !== pin) {
-        setError('Incorrect PIN for this name. If you forgot it, ask your teacher.')
-        setLoading(false)
-        return
-      }
-      setStudentId(existingStudent.id)
-    } else {
-      // 2. Create new student
-      const { data: newStudent, error: createError } = await supabase
+    // Try Login first, if not found, try Join
+    try {
+      // First, check if student exists to determine if we are joining or logging in
+      const { data: existing } = await supabase
         .from('students')
-        .insert([
-          { 
-            class_id: foundClass.id, 
-            name: studentName.trim(), 
-            pin: pin || null 
-          }
-        ])
-        .select()
+        .select('id')
+        .eq('class_id', foundClass.id)
+        .eq('name', studentName.trim())
         .single()
 
-      if (createError) {
-        setError('Could not join class: ' + createError.message)
+      const action = existing ? 'login' : 'join'
+      
+      const response = await fetch('/api/student/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          classId: foundClass.id,
+          name: studentName.trim(),
+          pin
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        if (action === 'login' && response.status === 401) {
+          const newAttempts = loginAttempts + 1
+          setLoginAttempts(newAttempts)
+          if (newAttempts >= 3) {
+            setError('Forgot your PIN? Ask your teacher to reset it.')
+          } else {
+            setError('Incorrect PIN. Please try again.')
+          }
+        } else {
+          setError(result.error || 'Authentication failed.')
+        }
         setLoading(false)
         return
       }
-      setStudentId(newStudent.id)
+
+      setStudentId(result.studentId)
+      
+      const { data: classTexts } = await supabase
+        .from('texts')
+        .select('*')
+        .eq('class_id', foundClass.id)
+        .order('created_at', { ascending: false })
+
+      setTexts(classTexts || [])
+      setStep('select-text')
+    } catch (err) {
+      setError('An unexpected error occurred.')
+    } finally {
+      setLoading(false)
     }
-
-    // 3. Fetch texts for this class to let student pick one
-    const { data: classTexts } = await supabase
-      .from('texts')
-      .select('*')
-      .eq('class_id', foundClass.id)
-      .order('created_at', { ascending: false })
-
-    setTexts(classTexts || [])
-    setStep('select-text')
-    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden">
-        <div className="bg-blue-600 p-8 text-white flex flex-col items-center">
-          <div className="p-3 bg-white/20 rounded-full mb-4">
-            <Users className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold">Join a Class</h1>
-          <p className="text-blue-100 text-sm mt-1">Participate in literary analysis.</p>
+    <div className="min-h-screen atmospheric-bg flex flex-col items-center justify-center p-6">
+      <GlassCard className="max-w-md w-full p-0 shadow-2xl border-white/40 overflow-hidden animate-in fade-in zoom-in duration-700">
+        <div className="bg-white/40 backdrop-blur-md p-10 flex flex-col items-center border-b border-white/40">
+          <Orb size="md" className="mb-6 shadow-[0_0_20px_rgba(232,155,108,0.3)]" />
+          <h1 className="text-3xl font-normal text-charcoal">Join Class</h1>
+          <p className="text-warm-grey text-base mt-2 font-light">Enter the shared emotional space.</p>
         </div>
 
-        <div className="p-8">
+        <div className="p-10">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm mb-6 flex items-start gap-2">
+            <div className="bg-red-50/30 backdrop-blur-sm border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-sm mb-8 font-medium flex items-center gap-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {step === 'code' && (
-            <form onSubmit={handleVerifyCode} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Enter Class Code
+            <form onSubmit={handleVerifyCode} className="space-y-8">
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-charcoal/60 text-center uppercase tracking-[0.2em]">
+                  Class Code
                 </label>
                 <input
                   type="text"
                   value={classCode}
                   onChange={(e) => setClassCode(e.target.value)}
-                  className="w-full text-center text-3xl font-mono tracking-[0.5em] px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-blue-500 outline-none transition-all uppercase placeholder:text-gray-200"
-                  placeholder="X7B9P2"
+                  className="w-full text-center text-4xl font-mono tracking-[0.4em] px-4 py-6 bg-white/30 border-none rounded-[28px] focus:ring-2 focus:ring-terracotta/20 outline-none transition-all uppercase placeholder:text-warm-grey/10 text-charcoal"
+                  placeholder="------"
                   maxLength={6}
                   required
                 />
-                <p className="text-xs text-gray-400 mt-3 text-center">
-                  Ask your teacher for the 6-character code.
-                </p>
               </div>
 
-              <button
+              <PillButton
                 type="submit"
                 disabled={loading || classCode.length < 6}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+                className="w-full py-5 text-xl flex items-center justify-center gap-3"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Find Class'}
-                <ArrowRight className="w-5 h-5" />
-              </button>
+                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Find Class'}
+                <ArrowRight className="w-6 h-6" />
+              </PillButton>
+
+              <div className="text-center">
+                <Link href="/" className="inline-flex items-center gap-2 text-sm text-warm-grey/40 hover:text-charcoal transition-colors">
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </Link>
+              </div>
             </form>
           )}
 
           {step === 'identity' && foundClass && (
-            <form onSubmit={handleIdentify} className="space-y-6">
-              <div className="text-center mb-6">
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Joining</span>
-                <h2 className="text-xl font-bold text-gray-900">{foundClass.name}</h2>
+            <form onSubmit={handleAuth} className="space-y-8">
+              <div className="text-center mb-8 bg-white/20 py-4 rounded-2xl border border-white/40">
+                <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">Entering</span>
+                <h2 className="text-2xl text-charcoal">{foundClass.name}</h2>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  What's your name?
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-charcoal/60 px-2">
+                  What&apos;s your name?
                 </label>
                 <input
                   type="text"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
-                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-blue-500 outline-none transition-all text-gray-900 font-bold"
+                  className="w-full px-6 py-4 bg-white/30 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none transition-all text-charcoal text-lg"
                   placeholder="e.g. Jane Doe"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center justify-between">
-                  PIN (4-digit, optional)
-                  <Lock className="w-3 h-3 text-gray-400" />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-charcoal/60 px-2 flex items-center justify-between">
+                  PIN (4-digit required)
+                  <Lock className="w-3.5 h-3.5 opacity-30" />
                 </label>
                 <input
                   type="password"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-blue-500 outline-none transition-all text-gray-900 text-center text-2xl tracking-[1em]"
+                  className="w-full px-6 py-4 bg-white/30 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none transition-all text-charcoal text-center text-2xl tracking-[0.8em] placeholder:text-warm-grey/10"
                   placeholder="••••"
                   maxLength={4}
-                  inputMode="numeric"
+                  required
                 />
-                <p className="text-xs text-gray-400 mt-2">
-                  Use a PIN if you want to protect your annotations.
+                <p className="text-[10px] text-warm-grey/60 px-4 mt-1">
+                  Remember this PIN — you&apos;ll need it every time you return.
                 </p>
               </div>
 
-              <button
+              <PillButton
                 type="submit"
-                disabled={loading || !studentName.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+                disabled={loading || !studentName.trim() || pin.length < 4}
+                className="w-full py-5 text-xl flex items-center justify-center gap-3"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Start Analyzing'}
-                <ArrowRight className="w-5 h-5" />
-              </button>
+                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Enter Space'}
+                <ArrowRight className="w-6 h-6" />
+              </PillButton>
             </form>
           )}
 
           {step === 'select-text' && (
-            <div className="space-y-6">
+            <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
               <div className="text-center">
-                <span className="text-xs font-bold text-green-600 uppercase tracking-widest">Success!</span>
-                <h2 className="text-xl font-bold text-gray-900">Pick a text to begin</h2>
+                <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">Identify Confirmed</span>
+                <h2 className="text-2xl text-charcoal mt-1">Pick a text to begin</h2>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-3">
                 {texts.length === 0 ? (
-                  <p className="text-center text-gray-400 py-8">No texts have been uploaded for this class yet.</p>
+                  <p className="text-center text-warm-grey py-10 opacity-60 font-light">No texts uploaded yet.</p>
                 ) : (
                   texts.map((text) => (
                     <button
                       key={text.id}
                       onClick={() => router.push(`/annotate/${text.id}?student=${studentId}`)}
-                      className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border-2 border-transparent hover:border-blue-200 rounded-2xl transition-all group text-left"
+                      className="w-full flex items-center gap-5 p-5 bg-white/20 hover:bg-white/50 border border-white/40 rounded-3xl transition-all group text-left shadow-sm"
                     >
-                      <div className="p-2 bg-white rounded-xl shadow-sm text-blue-500 group-hover:scale-110 transition-transform">
-                        <BookOpen className="w-5 h-5" />
+                      <div className="w-12 h-12 glass bg-white/80 rounded-2xl flex items-center justify-center text-terracotta group-hover:scale-110 transition-transform">
+                        <BookOpen className="w-6 h-6" />
                       </div>
-                      <span className="font-bold text-gray-700">{text.title}</span>
+                      <span className="text-lg text-charcoal">{text.title}</span>
                     </button>
                   ))
                 )}
@@ -232,7 +253,7 @@ export default function JoinPage() {
             </div>
           )}
         </div>
-      </div>
+      </GlassCard>
     </div>
   )
 }

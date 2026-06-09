@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, BarChart2, Loader2, Info } from 'lucide-react'
 import { Class, Text, Student, Annotation } from '@/types/database'
 import SpectrumVisualizer from '@/components/viz/SpectrumVisualizer'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 export default function SpectrumPage({ params }: { params: Promise<{ id: string, textId: string }> }) {
   const { id: classId, textId } = use(params)
@@ -18,19 +19,13 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
 
   const router = useRouter()
 
-  useEffect(() => {
-    fetchSpectrumData()
-  }, [classId, textId])
-
-  const fetchSpectrumData = async () => {
+  const fetchSpectrumData = useCallback(async () => {
     try {
       let { data: { user } } = await supabase.auth.getUser()
-      
       if (!user) {
         const { data: { session } } = await supabase.auth.getSession()
         user = session?.user || null
       }
-
       if (!user) {
         router.push('/teacher/login')
         return
@@ -44,7 +39,6 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
       ])
 
       if (classRes.error || textRes.error) {
-        console.error('Error fetching data')
         router.push(`/teacher/class/${classId}`)
         return
       }
@@ -54,16 +48,20 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
       setStudents(studentsRes.data || [])
       setAnnotations(annRes.data || [])
     } catch (err) {
-      console.error('Unexpected spectrum data error:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [classId, textId, router])
+
+  useEffect(() => {
+    void fetchSpectrumData() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [fetchSpectrumData])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="w-10 h-10 animate-spin text-terracotta/40" />
       </div>
     )
   }
@@ -71,49 +69,50 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
   if (!cls || !text) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href={`/teacher/class/${classId}`} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <ChevronLeft className="w-5 h-5 text-gray-500" />
-            </Link>
-            <div>
-              <h1 className="font-bold text-xl text-gray-900 leading-tight">Spectrum: {text.title}</h1>
-              <p className="text-xs text-gray-400 font-medium">{cls.name}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-100">
-            <BarChart2 className="w-4 h-4 text-purple-600" />
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">{annotations.length} Annotations</span>
-          </div>
+    <div className="space-y-12 animate-in fade-in duration-1000">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="space-y-3">
+          <Link 
+            href={`/teacher/class/${classId}`} 
+            className="group flex items-center gap-2 text-warm-grey hover:text-charcoal transition-colors text-sm mb-4"
+          >
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Class
+          </Link>
+          <h1 className="text-5xl font-normal text-charcoal">
+            Spectrum: {text.title}
+          </h1>
+          <p className="text-warm-grey text-xl font-light">{cls.name}</p>
         </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto p-6 md:p-8">
-        {annotations.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-gray-200 shadow-sm max-w-2xl mx-auto">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Info className="w-8 h-8 text-gray-300" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">No data yet</h2>
-            <p className="text-gray-500 mb-8">
-              Students haven't added any annotations to this text yet. Share the class code with them to start collecting data.
-            </p>
-            <div className="inline-block bg-purple-100 px-6 py-3 rounded-2xl border border-purple-200">
-              <span className="text-xs font-bold text-purple-400 uppercase tracking-widest block mb-1">Class Code</span>
-              <span className="text-3xl font-mono font-black text-purple-700 uppercase tracking-[0.2em]">{cls.class_code}</span>
-            </div>
+        <div className="flex items-center gap-4 glass bg-white/40 px-6 py-3 rounded-full border-white/60 shadow-sm">
+          <BarChart2 className="w-5 h-5 text-terracotta" />
+          <span className="text-sm font-bold text-charcoal uppercase tracking-widest">{annotations.length} Annotations</span>
+        </div>
+      </header>
+
+      {annotations.length === 0 ? (
+        <GlassCard className="py-32 text-center border-dashed border-2 border-white/30 bg-white/10 max-w-3xl mx-auto">
+          <div className="bg-white/40 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm backdrop-blur-sm">
+            <Info className="w-12 h-12 text-warm-grey/40" />
           </div>
-        ) : (
-          <SpectrumVisualizer 
-            text={text.content}
-            annotations={annotations}
-            students={students}
-            title={text.title}
-          />
-        )}
-      </main>
+          <h3 className="text-3xl text-charcoal font-light mb-4">No data yet</h3>
+          <p className="text-warm-grey text-lg mb-10 max-w-md mx-auto">
+            Students haven&apos;t added any annotations to this text yet. Share the code to begin.
+          </p>
+          <div className="inline-flex flex-col items-center glass bg-white/60 px-10 py-6 rounded-[28px] border-white/80 shadow-md">
+            <span className="text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em] mb-2">Class Code</span>
+            <span className="text-4xl font-mono font-black text-charcoal uppercase tracking-[0.3em]">{cls.class_code}</span>
+          </div>
+        </GlassCard>
+      ) : (
+        <SpectrumVisualizer 
+          text={text.content}
+          annotations={annotations}
+          students={students}
+          title={text.title}
+        />
+      )}
     </div>
   )
 }

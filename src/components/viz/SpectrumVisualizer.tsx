@@ -1,192 +1,252 @@
 'use client'
 
-import React from 'react'
-import dynamic from 'next/dynamic'
+import React, { useState, useRef, useMemo } from 'react'
 import { RASA_CONFIGS, RasaLabel, Annotation, Student } from '@/types/database'
-
-// Dynamically import Plotly to avoid SSR issues
-const Plot = dynamic(() => import('react-plotly.js'), { 
-  ssr: false,
-  loading: () => <div className="h-96 w-full bg-gray-50 animate-pulse rounded-2xl flex items-center justify-center text-gray-400">Loading Visualization...</div>
-})
+import { GlassCard } from '@/components/ui/GlassCard'
 
 interface SpectrumProps {
   text: string
   annotations: Annotation[]
   students: Student[]
-  title: string
+  title?: string
 }
 
-export default function SpectrumVisualizer({ text, annotations, students, title }: SpectrumProps) {
+interface TooltipState {
+  x: number
+  y: number
+  content: {
+    studentName: string
+    emotion: string
+    passage: string
+    agreement?: string
+  }
+}
+
+export default function SpectrumVisualizer({ text, annotations, students }: SpectrumProps) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
   const textLength = text.length
+  const BAND_HEIGHT = 40
+  const BAND_GAP = 4
+  const LABEL_WIDTH = 180
+  const MARGIN_RIGHT = 40
 
-  // 1. Prepare Per-Student Traces
-  // We want one row (Y value) per student
-  const studentMap = new Map(students.map((s, i) => [s.id, { name: s.name, index: i }]))
-  
-  const studentTraces = annotations.map(ann => {
-    const student = studentMap.get(ann.student_id)
-    if (!student) return null
-
-    const rasa = RASA_CONFIGS[ann.rasa_label]
-    const snippet = text.substring(ann.start_offset, ann.end_offset)
-
-    return {
-      x: [ann.start_offset, ann.end_offset],
-      y: [student.index, student.index],
-      mode: 'lines',
-      line: { color: rasa.color, width: 20 },
-      name: rasa.name,
-      hoverinfo: 'text',
-      hovertext: `<b>${student.name}</b><br>Emotion: ${rasa.name}<br>Text: "${snippet}"`,
-      showlegend: false,
-      type: 'scatter'
-    }
-  }).filter(Boolean)
-
-  // 2. Prepare Consensus Data
-  // Create a map of character positions and the count of each Rasa
-  const charConsensus = Array.from({ length: textLength }, () => ({} as Record<RasaLabel, number>))
-  
-  annotations.forEach(ann => {
-    for (let i = ann.start_offset; i < ann.end_offset; i++) {
-      if (i < textLength) {
-        charConsensus[i][ann.rasa_label] = (charConsensus[i][ann.rasa_label] || 0) + 1
-      }
-    }
-  })
-
-  // Group adjacent characters with the same consensus set to minimize Plotly shapes
-  const consensusGroups: { start: number, end: number, rasas: { label: RasaLabel, count: number }[] }[] = []
-  let currentGroup: { start: number, rasas: string } | null = null
-
-  charConsensus.forEach((counts, i) => {
-    const sortedRasas = (Object.entries(counts) as [RasaLabel, number][])
-      .filter(([_, count]) => count > 0)
-      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+  // 1. Calculate Majority Emotion for Consolidated View
+  const consensusData = useMemo(() => {
+    if (textLength === 0) return []
     
-    const rasaKey = sortedRasas.map(r => `${r[0]}:${r[1]}`).join(',')
-
-    if (!currentGroup || currentGroup.rasas !== rasaKey) {
-      if (currentGroup) {
-        consensusGroups[consensusGroups.length - 1].end = i
+    // Character-by-character frequency map
+    const charMap = Array.from({ length: textLength }, () => ({} as Record<string, number>))
+    
+    annotations.forEach(ann => {
+      for (let i = ann.start_offset; i < ann.end_offset; i++) {
+        if (i < textLength) {
+          charMap[i][ann.rasa_label] = (charMap[i][ann.rasa_label] || 0) + 1
+        }
       }
-      consensusGroups.push({ 
-        start: i, 
-        end: i + 1, 
-        rasas: sortedRasas.map(([label, count]) => ({ label, count }))
-      })
-      currentGroup = { start: i, rasas: rasaKey }
-    } else {
-      consensusGroups[consensusGroups.length - 1].end = i + 1
-    }
-  })
-
-  // Create Consensus Shapes (Vertical stacking for ties)
-  const consensusShapes: any[] = []
-  const totalStudents = students.length || 1
-
-  consensusGroups.forEach(group => {
-    if (group.rasas.length === 0) return
-
-    let currentY = 0
-    group.rasas.forEach(rasa => {
-      const height = rasa.count / totalStudents
-      consensusShapes.push({
-        type: 'rect',
-        x0: group.start,
-        x1: group.end,
-        y0: currentY,
-        y1: currentY + height,
-        fillcolor: RASA_CONFIGS[rasa.label].color,
-        line: { width: 0 },
-        xref: 'x',
-        yref: 'y2'
-      })
-      currentY += height
     })
-  })
+
+    const segments: { start: number, end: number, label: RasaLabel, agreement: number }[] = []
+    let currentSegment: { start: number, label: RasaLabel, agreement: number } | null = null
+
+    charMap.forEach((freqs, i) => {
+      const sorted = Object.entries(freqs).sort((a, b) => b[1] - a[1])
+      const majority = sorted[0] // [label, count]
+      
+      const majorityLabel = majority ? (majority[0] as RasaLabel) : null
+      const agreement = majority ? majority[1] : 0
+
+      if (!currentSegment || currentSegment.label !== majorityLabel || currentSegment.agreement !== agreement) {
+        if (currentSegment && currentSegment.label) {
+          segments.push({ ...currentSegment, end: i })
+        }
+        currentSegment = majorityLabel ? { start: i, label: majorityLabel, agreement } : null
+      }
+    })
+    
+    if (currentSegment && currentSegment.label) {
+      segments.push({ ...currentSegment, end: textLength })
+    }
+
+    return segments
+  }, [annotations, textLength])
+
+  const handleMouseMove = (e: React.MouseEvent, content: TooltipState['content']) => {
+    setTooltip({
+      x: e.clientX,
+      y: e.clientY,
+      content
+    })
+  }
 
   return (
-    <div className="space-y-12">
-      {/* Individual Student Spectrum */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center justify-between">
-          Student Spectrum
-          <span className="text-xs font-normal text-gray-400">One row per student</span>
-        </h3>
-        <div className="w-full overflow-hidden">
-          <Plot
-            data={studentTraces as any}
-            layout={{
-              title: '',
-              height: Math.max(200, students.length * 40),
-              margin: { l: 120, r: 40, t: 20, b: 40 },
-              xaxis: { 
-                title: 'Text Position (Characters)',
-                range: [0, textLength],
-                gridcolor: '#f3f4f6'
-              },
-              yaxis: {
-                tickmode: 'array',
-                tickvals: students.map((_, i) => i),
-                ticktext: students.map(s => s.name),
-                gridcolor: '#f3f4f6',
-                fixedrange: true
-              },
-              hovermode: 'closest',
-              plot_bgcolor: 'white',
-              paper_bgcolor: 'white',
-            }}
-            config={{ responsive: true, displayModeBar: false }}
-            className="w-full"
-          />
-        </div>
-      </div>
-
-      {/* Consensus Spectrum */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center justify-between">
+    <div className="space-y-12 animate-in fade-in duration-1000 select-none" ref={containerRef}>
+      {/* 1. Consolidated View (The "Hero" Band) */}
+      <GlassCard className="p-10 shadow-lg border-white/40 overflow-hidden relative bg-white/40">
+        <h3 className="text-3xl text-charcoal mb-2 font-normal flex items-center justify-between">
           Consensus Spectrum
-          <span className="text-xs font-normal text-gray-400">Aggregated Class View</span>
+          <span className="text-[10px] font-bold text-warm-grey/40 tracking-[0.2em] uppercase">Majority Emotion</span>
         </h3>
-        <p className="text-sm text-gray-500 mb-6 italic">
-          Vertical height/stacking represents the proportion of students who chose each emotion.
+        <p className="text-lg text-warm-grey mb-12 font-light">
+          Aggregated emotional landscape across the entire class.
         </p>
-        <div className="w-full overflow-hidden">
-          <Plot
-            data={[{
-              x: [0, textLength],
-              y: [0, 1],
-              type: 'scatter',
-              mode: 'markers',
-              marker: { opacity: 0 },
-              showlegend: false,
-              hoverinfo: 'none'
-            }]}
-            layout={{
-              title: '',
-              height: 150,
-              margin: { l: 40, r: 40, t: 10, b: 40 },
-              xaxis: { 
-                range: [0, textLength],
-                title: 'Text Position',
-                gridcolor: '#f3f4f6'
-              },
-              yaxis: { 
-                range: [0, 1],
-                visible: false,
-                fixedrange: true
-              },
-              shapes: consensusShapes as any,
-              plot_bgcolor: 'white',
-              paper_bgcolor: 'white',
-            }}
-            config={{ responsive: true, displayModeBar: false }}
-            className="w-full"
-          />
+
+        <div className="relative overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-charcoal/10 scrollbar-track-transparent">
+          <div style={{ minWidth: LABEL_WIDTH + textLength + MARGIN_RIGHT }}>
+            <svg 
+              width={LABEL_WIDTH + textLength + MARGIN_RIGHT} 
+              height={80} 
+              viewBox={`0 0 ${LABEL_WIDTH + textLength + MARGIN_RIGHT} 80`}
+              className="w-full"
+            >
+              <g transform={`translate(${LABEL_WIDTH}, 10)`}>
+                {consensusData.map((seg, i) => (
+                  <rect
+                    key={i}
+                    x={seg.start}
+                    y={0}
+                    width={seg.end - seg.start}
+                    height={60}
+                    fill={RASA_CONFIGS[seg.label].color}
+                    opacity={0.3 + (seg.agreement / students.length) * 0.7}
+                    onMouseMove={(e) => handleMouseMove(e, {
+                      studentName: 'Class Majority',
+                      emotion: RASA_CONFIGS[seg.label].name,
+                      passage: text.substring(seg.start, seg.end),
+                      agreement: `${seg.agreement}/${students.length} students`
+                    })}
+                    onMouseLeave={() => setTooltip(null)}
+                    className="cursor-crosshair transition-opacity duration-300"
+                  />
+                ))}
+              </g>
+            </svg>
+          </div>
         </div>
-      </div>
+      </GlassCard>
+
+      {/* 2. Individual Spectrum (The "Barcode" Stacks) */}
+      <GlassCard className="p-10 shadow-lg border-white/40 overflow-hidden relative bg-white/40">
+        <h3 className="text-3xl text-charcoal mb-12 font-normal flex items-center justify-between">
+          Student Spectrum
+          <span className="text-[10px] font-bold text-warm-grey/40 tracking-[0.2em] uppercase">Individual Journeys</span>
+        </h3>
+
+        <div className="relative overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-charcoal/10 scrollbar-track-transparent">
+          <div style={{ minWidth: LABEL_WIDTH + textLength + MARGIN_RIGHT }}>
+            <svg 
+              width={LABEL_WIDTH + textLength + MARGIN_RIGHT} 
+              height={students.length * (BAND_HEIGHT + BAND_GAP) + 60} 
+              viewBox={`0 0 ${LABEL_WIDTH + textLength + MARGIN_RIGHT} ${students.length * (BAND_HEIGHT + BAND_GAP) + 60}`}
+              className="w-full"
+            >
+              {students.map((student, sIdx) => {
+                const studentAnns = annotations.filter(a => a.student_id === student.id)
+                const y = sIdx * (BAND_HEIGHT + BAND_GAP)
+
+                return (
+                  <g key={student.id} transform={`translate(0, ${y})`}>
+                    {/* Name Label */}
+                    <text
+                      x={LABEL_WIDTH - 20}
+                      y={BAND_HEIGHT / 2}
+                      textAnchor="end"
+                      alignmentBaseline="middle"
+                      className="fill-charcoal font-bold text-sm uppercase tracking-wider font-sans"
+                    >
+                      {student.name}
+                    </text>
+
+                    {/* Band Background */}
+                    <rect 
+                      x={LABEL_WIDTH} 
+                      y={0} 
+                      width={textLength} 
+                      height={BAND_HEIGHT} 
+                      fill="#FDFBF7"
+                      className="opacity-50"
+                    />
+
+                    {/* Emotion Stripes */}
+                    <g transform={`translate(${LABEL_WIDTH}, 0)`}>
+                      {studentAnns.map((ann) => (
+                        <rect
+                          key={ann.id}
+                          x={ann.start_offset}
+                          y={0}
+                          width={ann.end_offset - ann.start_offset}
+                          height={BAND_HEIGHT}
+                          fill={RASA_CONFIGS[ann.rasa_label].color}
+                          style={{ mixBlendMode: 'multiply' }}
+                          className="opacity-60 cursor-crosshair hover:opacity-100 transition-opacity"
+                          onMouseMove={(e) => handleMouseMove(e, {
+                            studentName: student.name,
+                            emotion: RASA_CONFIGS[ann.rasa_label].name,
+                            passage: text.substring(ann.start_offset, ann.end_offset)
+                          })}
+                          onMouseLeave={() => setTooltip(null)}
+                        />
+                      ))}
+                    </g>
+                  </g>
+                )
+              })}
+
+              {/* Progression Arrow */}
+              <g transform={`translate(${LABEL_WIDTH}, ${students.length * (BAND_HEIGHT + BAND_GAP) + 30})`}>
+                <line 
+                  x1={0} y1={0} x2={textLength} y2={0} 
+                  stroke="#2A2622" strokeWidth={1} strokeDasharray="4 4" 
+                />
+                <path d={`M ${textLength - 10} -5 L ${textLength} 0 L ${textLength - 10} 5`} fill="none" stroke="#2A2622" strokeWidth={1} />
+                <text 
+                  x={textLength / 2} y={20} 
+                  textAnchor="middle" 
+                  className="fill-warm-grey text-[10px] font-bold uppercase tracking-[0.3em]"
+                >
+                  Progression
+                </text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Custom Tooltip */}
+      {tooltip && (
+        <div 
+          className="fixed z-[100] pointer-events-none transition-transform duration-75 ease-out"
+          style={{ 
+            left: tooltip.x + 20, 
+            top: tooltip.y,
+            transform: 'translate(0, -50%)'
+          }}
+        >
+          <div className="bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl p-6 rounded-2xl max-w-sm animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em] mb-1">
+                  {tooltip.content.studentName}
+                </span>
+                <span className="text-xl font-normal text-charcoal">
+                  {tooltip.content.emotion}
+                </span>
+              </div>
+              {tooltip.content.agreement && (
+                <span className="glass bg-charcoal/5 px-2 py-1 rounded-md text-[9px] font-bold text-charcoal/60 uppercase">
+                  {tooltip.content.agreement}
+                </span>
+              )}
+            </div>
+            <div className="h-px bg-charcoal/5 mb-4" />
+            <p className="text-sm leading-relaxed text-charcoal/80 font-serif italic line-clamp-6">
+              &quot;{tooltip.content.passage.length > 200 ? tooltip.content.passage.substring(0, 197) + '...' : tooltip.content.passage}&quot;
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
