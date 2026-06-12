@@ -110,7 +110,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       if (textRes.data.trigger_warning) {
         setShowTriggerWarning(true)
       }
-    } catch (err) {
+    } catch {
       router.push('/join')
     } finally {
       setLoading(false)
@@ -118,7 +118,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   }, [textId, router])
 
   useEffect(() => {
-    void fetchInitialData() // eslint-disable-line react-hooks/set-state-in-effect
+    void fetchInitialData()
   }, [fetchInitialData])
 
   const handleMouseUp = () => {
@@ -555,3 +555,4 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
     </div>
   )
 }
+

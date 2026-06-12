@@ -3,6 +3,8 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { User } from '@supabase/supabase-js'
+// ...
 import { ArrowRight, Loader2, Lock, ChevronLeft } from 'lucide-react'
 import { Class } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -29,7 +31,7 @@ export default function JoinPage() {
   const [studentName, setStudentName] = useState('')
   const [pin, setPin] = useState('')
   const [loginAttempts, setLoginAttempts] = useState(0)
-  const [supabaseUser, setSupabaseUser] = useState<any>(null)
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null)
 
   const router = useRouter()
 

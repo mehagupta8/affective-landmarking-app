@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { 
-  User, 
+  User as UserIcon, 
   Lock, 
   Loader2, 
   CheckCircle2, 
@@ -12,12 +12,13 @@ import {
   Mail,
   Fingerprint
 } from 'lucide-react'
+import { User } from '@supabase/supabase-js'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { cn } from '@/lib/utils'
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -122,7 +123,7 @@ export default function SettingsPage() {
         {/* Profile Settings */}
         <div className="space-y-8">
           <div className="flex items-center gap-3 px-2">
-            <User className="w-6 h-6 text-terracotta" />
+            <UserIcon className="w-6 h-6 text-terracotta" />
             <h2 className="text-4xl text-charcoal font-light">Profile</h2>
           </div>
 
@@ -145,7 +146,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
+                  <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
                   <input
                     type="text"
                     value={fullName}

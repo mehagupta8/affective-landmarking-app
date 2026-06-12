@@ -101,7 +101,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   }, [classId, router])
 
   useEffect(() => {
-    void fetchClassData() // eslint-disable-line react-hooks/set-state-in-effect
+    void fetchClassData()
   }, [fetchClassData])
 
   const handleAddText = async (e: FormEvent) => {

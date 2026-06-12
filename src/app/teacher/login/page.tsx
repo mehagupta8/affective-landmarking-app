@@ -23,7 +23,7 @@ function LoginForm() {
       // Use a microtask or next tick if absolutely necessary, 
       // but here it's fine to just set it once on mount if we're careful.
       // Better yet, just initialize the state if we can.
-      setError('The authentication link is invalid or has expired.') // eslint-disable-line react-hooks/set-state-in-effect
+      setError('The authentication link is invalid or has expired.')
     }
   }, [searchParams])
 

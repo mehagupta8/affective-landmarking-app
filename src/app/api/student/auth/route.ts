@@ -12,12 +12,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Check if student exists
-    let { data: existingStudent, error: fetchError } = await supabase
+    const { data: foundStudent } = await supabase
       .from('students')
       .select('*')
       .eq('class_id', classId)
       .eq('name', name.trim())
       .single();
+
+    let existingStudent = foundStudent;
 
     // If not found by name, try finding by auth_user_id if provided
     if (!existingStudent && auth_user_id) {

@@ -50,7 +50,7 @@ export default function Dashboard() {
   }, [router])
 
   useEffect(() => {
-    void fetchClasses() // eslint-disable-line react-hooks/set-state-in-effect
+    void fetchClasses()
   }, [fetchClasses])
 
   const handleCreateClass = async (e: FormEvent) => {

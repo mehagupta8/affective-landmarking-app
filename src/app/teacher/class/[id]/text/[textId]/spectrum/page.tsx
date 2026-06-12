@@ -61,7 +61,7 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
   }, [classId, textId, router])
 
   useEffect(() => {
-    void fetchSpectrumData() // eslint-disable-line react-hooks/set-state-in-effect
+    void fetchSpectrumData()
   }, [fetchSpectrumData])
 
   if (loading) {
