@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { 
   User, 
   Lock, 
-  Key, 
   Loader2, 
   CheckCircle2, 
   AlertCircle,
@@ -27,9 +26,8 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState('')
 
   // Security State
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setNewConfirmPassword] = useState('')
   const [newPin, setNewPin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
 
   const router = useRouter()
 
@@ -43,6 +41,7 @@ export default function SettingsPage() {
       setUser(user)
       setFullName(user.user_metadata?.full_name || '')
       setNewPin(user.user_metadata?.pin || '')
+      setConfirmPin(user.user_metadata?.pin || '')
       setLoading(false)
     }
     void fetchUser()
@@ -70,29 +69,26 @@ export default function SettingsPage() {
     setUpdating(true)
     setMessage(null)
 
-    if (newPassword && newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: 'Passwords do not match.' })
+    if (newPin !== confirmPin) {
+      setMessage({ type: 'error', text: 'PINs do not match.' })
       setUpdating(false)
       return
     }
 
-    if (newPin && !/^\d{4}$/.test(newPin)) {
+    if (!/^\d{4}$/.test(newPin)) {
       setMessage({ type: 'error', text: 'PIN must be exactly 4 digits.' })
       setUpdating(false)
       return
     }
 
-    const updates: any = { data: { pin: newPin } }
-    if (newPassword) updates.password = newPassword
-
-    const { error } = await supabase.auth.updateUser(updates)
+    const { error } = await supabase.auth.updateUser({
+      data: { pin: newPin }
+    })
 
     if (error) {
       setMessage({ type: 'error', text: error.message })
     } else {
-      setMessage({ type: 'success', text: 'Security settings updated successfully.' })
-      setNewPassword('')
-      setNewConfirmPassword('')
+      setMessage({ type: 'success', text: 'Classroom PIN updated successfully.' })
     }
     setUpdating(false)
   }
@@ -176,13 +172,13 @@ export default function SettingsPage() {
         <div className="space-y-8">
           <div className="flex items-center gap-3 px-2">
             <Lock className="w-6 h-6 text-terracotta" />
-            <h2 className="text-4xl text-charcoal font-light">Security</h2>
+            <h2 className="text-4xl text-charcoal font-light">Identity Verification</h2>
           </div>
 
           <GlassCard className="p-10 border-white/40 shadow-lg">
             <form onSubmit={handleUpdateSecurity} className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">Classroom PIN</label>
+                <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">New PIN for Class</label>
                 <div className="relative">
                   <Fingerprint className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
                   <input
@@ -194,40 +190,22 @@ export default function SettingsPage() {
                     maxLength={4}
                   />
                 </div>
-                <p className="text-[10px] text-warm-grey/60 px-4">The 4-digit code you use to unlock your portal.</p>
               </div>
 
-              <div className="h-px bg-charcoal/5 my-2" />
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">New Password</label>
-                  <div className="relative">
-                    <Key className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-16 pr-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal transition-all"
-                      placeholder="Leave blank to keep current"
-                      minLength={6}
-                    />
-                  </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">Confirm New PIN</label>
+                <div className="relative">
+                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
+                  <input
+                    type="password"
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value)}
+                    className="w-full pl-16 pr-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal tracking-[0.5em] transition-all"
+                    placeholder="••••"
+                    maxLength={4}
+                  />
                 </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">Confirm Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setNewConfirmPassword(e.target.value)}
-                      className="w-full pl-16 pr-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal transition-all"
-                      placeholder="Repeat new password"
-                    />
-                  </div>
-                </div>
+                <p className="text-[10px] text-warm-grey/60 px-4">The 4-digit code used to unlock your portal.</p>
               </div>
 
               <PillButton 
@@ -236,7 +214,7 @@ export default function SettingsPage() {
                 className="w-full py-4 flex items-center justify-center gap-3 mt-4"
               >
                 {updating && <Loader2 className="w-5 h-5 animate-spin" />}
-                Save Security Settings
+                Save Security PIN
               </PillButton>
             </form>
           </GlassCard>
