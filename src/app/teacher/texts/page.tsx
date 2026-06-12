@@ -292,7 +292,10 @@ export default function TextsPage() {
           </GlassCard>
         ) : (
           texts.filter(t => t && t.id).map((text) => (
-            <GlassCard key={text.id} className="p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group hover:-translate-y-1 transition-all duration-500 shadow-sm border-white/40">
+            <GlassCard key={text.id} className={cn(
+              "p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group hover:-translate-y-1 transition-all duration-500 shadow-sm border-white/40",
+              activeMenuId === text.id ? "z-[50]" : "z-10"
+            )}>
               <div className="space-y-4 flex-1">
                 <div className="space-y-1">
                   <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500">{text.title}</h3>
@@ -347,7 +350,7 @@ export default function TextsPage() {
                   </PillButton>
                 </Link>
 
-                <div className="relative">
+                <div className="relative z-[60]">
                   <button 
                     onClick={() => setActiveMenuId(activeMenuId === text.id ? null : text.id)}
                     className="p-3 hover:bg-white/60 rounded-full text-warm-grey/40 hover:text-charcoal transition-all border border-transparent hover:border-white/60"
@@ -356,7 +359,7 @@ export default function TextsPage() {
                   </button>
 
                   {activeMenuId === text.id && (
-                    <div className="absolute top-full right-0 mt-2 z-30 w-56 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 animate-in fade-in zoom-in duration-200">
+                    <div className="absolute top-full right-0 mt-2 z-[70] w-56 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 animate-in fade-in zoom-in duration-200">
                       <div className="flex flex-col gap-1">
                         <button
                           onClick={() => {
@@ -380,7 +383,7 @@ export default function TextsPage() {
                             <Plus className="w-3 h-3 text-warm-grey/40" />
                           </button>
                           
-                          <div className="absolute right-full top-0 mr-2 w-64 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 hidden group-hover/clone:block animate-in fade-in slide-in-from-right-2">
+                          <div className="absolute right-full top-0 mr-2 w-64 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 hidden group-hover/clone:block animate-in fade-in slide-in-from-right-2 z-[80]">
                             <div className="px-3 py-2 border-b border-charcoal/5 mb-1">
                               <span className="text-[9px] font-black text-terracotta uppercase tracking-widest">Select Target Class</span>
                             </div>
