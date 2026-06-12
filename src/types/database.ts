@@ -16,14 +16,14 @@ export interface RasaConfig {
 }
 
 export const RASA_CONFIGS: Record<RasaLabel, RasaConfig> = {
-  fear: { label: 'fear', color: '#1a1a1a', name: 'Fear', sanskrit: 'Bhayanaka' },
-  joy: { label: 'joy', color: '#ffd700', name: 'Joy', sanskrit: 'Hasya' },
-  anger: { label: 'anger', color: '#d32f2f', name: 'Anger', sanskrit: 'Raudra' },
-  wonder: { label: 'wonder', color: '#8e44ad', name: 'Wonder', sanskrit: 'Adbhuta' },
-  disgust: { label: 'disgust', color: '#2e7d32', name: 'Disgust', sanskrit: 'Bibhatsa' },
-  love: { label: 'love', color: '#ec407a', name: 'Love', sanskrit: 'Shringara' },
-  heroism: { label: 'heroism', color: '#ff8c00', name: 'Heroism', sanskrit: 'Vira' },
-  sadness: { label: 'sadness', color: '#607d8b', name: 'Sadness', sanskrit: 'Karuna' },
+  fear: { label: 'fear', color: '#191910', name: 'Fear', sanskrit: 'Bhayanaka' },
+  joy: { label: 'joy', color: '#FFC0CB', name: 'Joy', sanskrit: 'Hasya' },
+  anger: { label: 'anger', color: '#E14747', name: 'Anger', sanskrit: 'Raudra' },
+  wonder: { label: 'wonder', color: '#F8E042', name: 'Wonder', sanskrit: 'Adbhuta' },
+  disgust: { label: 'disgust', color: '#05BB60', name: 'Disgust', sanskrit: 'Bibhatsa' },
+  love: { label: 'love', color: '#368BE1', name: 'Love', sanskrit: 'Shringara' },
+  heroism: { label: 'heroism', color: '#E9953B', name: 'Heroism', sanskrit: 'Vira' },
+  sadness: { label: 'sadness', color: '#DDDDDD', name: 'Sadness', sanskrit: 'Karuna' },
 };
 
 export interface Class {

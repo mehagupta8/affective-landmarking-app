@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Loader2, AlertCircle, ChevronLeft } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
+import { GoogleButton } from '@/components/ui/GoogleButton'
 import { Orb } from '@/components/ui/Orb'
 
 function LoginForm() {
@@ -43,6 +44,16 @@ function LoginForm() {
       setError('An unexpected error occurred.')
       setLoading(false)
     }
+  }
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    if (error) setError(error.message)
   }
 
   return (
@@ -99,6 +110,19 @@ function LoginForm() {
           {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Sign In'}
         </PillButton>
       </form>
+
+      <div className="mt-6 space-y-4">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-charcoal/5"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#FDFBF7] px-4 text-warm-grey/40 font-bold tracking-widest">Or continue with</span>
+          </div>
+        </div>
+
+        <GoogleButton onClick={handleGoogleLogin} />
+      </div>
 
       <p className="text-center mt-10 text-base text-warm-grey font-light">
         Don&apos;t have an account?{' '}

@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, use } from 'react'
+import React, { useState, useEffect, useRef, useCallback, use, useMemo } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ChevronLeft, 
   X,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  Mail,
+  Send
 } from 'lucide-react'
 import { Text, Student, Annotation, RASA_CONFIGS, RasaLabel } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -26,10 +29,35 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   const [loading, setLoading] = useState(true)
   const [showTriggerWarning, setShowTriggerWarning] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   // Selection State
   const [selection, setSelection] = useState<{ start: number, end: number, rect: DOMRect } | null>(null)
   const textRef = useRef<HTMLDivElement>(null)
+
+  const progress = useMemo(() => {
+    if (!text || text.content.length === 0) return 0
+    const intervals = annotations
+      .map(a => [a.start_offset, a.end_offset])
+      .sort((a, b) => a[0] - b[0])
+
+    if (intervals.length === 0) return 0
+
+    const merged = [[...intervals[0]]]
+    for (let i = 1; i < intervals.length; i++) {
+      const prev = merged[merged.length - 1]
+      const curr = intervals[i]
+      if (curr[0] <= prev[1]) {
+        prev[1] = Math.max(prev[1], curr[1])
+      } else {
+        merged.push([...curr])
+      }
+    }
+
+    const totalCovered = merged.reduce((acc, [start, end]) => acc + (end - start), 0)
+    return Math.min(100, Math.round((totalCovered / text.content.length) * 100))
+  }, [annotations, text])
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -56,6 +84,16 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       setText(textRes.data)
       setAnnotations(annRes.data || [])
       
+      const { data: currentStudent } = await supabase
+        .from('students')
+        .select('submitted_texts')
+        .eq('id', meData.id)
+        .single()
+      
+      if (currentStudent?.submitted_texts?.includes(textId)) {
+        setIsSubmitted(true)
+      }
+
       if (textRes.data.trigger_warning) {
         setShowTriggerWarning(true)
       }
@@ -120,6 +158,31 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
     setSaving(false)
   }
 
+  const handleSubmit = async () => {
+    if (!student || !textId) return
+    setSubmitting(true)
+    
+    const { data: current } = await supabase
+      .from('students')
+      .select('submitted_texts')
+      .eq('id', student.id)
+      .single()
+    
+    const submitted = current?.submitted_texts || []
+    if (!submitted.includes(textId)) {
+      const { error } = await supabase
+        .from('students')
+        .update({ submitted_texts: [...submitted, textId] })
+        .eq('id', student.id)
+      
+      if (!error) {
+        setIsSubmitted(true)
+        router.push(`/annotate/${textId}/submitted`)
+      }
+    }
+    setSubmitting(false)
+  }
+
   const renderTextWithHighlights = () => {
     if (!text) return null
     const content = text.content
@@ -147,23 +210,33 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
     return groups.map((group, i) => {
       if (group.anns.length === 0) return <span key={i}>{group.text}</span>
-      return (
-        <span key={i} className="relative inline">
-          {group.anns.map((ann, idx) => (
-            <span 
-              key={ann.id}
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundColor: RASA_CONFIGS[ann.rasa_label].color,
-                opacity: 0.25,
-                zIndex: idx + 1,
-                mixBlendMode: 'multiply'
-              }}
-            />
-          ))}
-          {group.text}
-        </span>
-      )
+
+      // We wrap the text in nested spans, one for each emotion.
+      // 'boxDecorationBreak: clone' ensures the highlight wraps tightly and 
+      // renders independently for each line segment when wrapping.
+      let element = <>{group.text}</>
+      
+      group.anns.forEach((ann, idx) => {
+        element = (
+          <span 
+            key={ann.id}
+            style={{
+              backgroundColor: RASA_CONFIGS[ann.rasa_label].color,
+              mixBlendMode: 'multiply',
+              boxDecorationBreak: 'clone',
+              WebkitBoxDecorationBreak: 'clone',
+              padding: '0.15em 0',
+              borderRadius: '3px',
+              opacity: 0.8 // Increased base opacity since they multiply
+            }}
+            className="inline"
+          >
+            {element}
+          </span>
+        )
+      })
+
+      return <span key={i} className="inline leading-normal">{element}</span>
     })
   }
 
@@ -175,12 +248,53 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
   return (
     <div className="min-h-screen atmospheric-bg flex flex-col items-center py-12 px-6 relative">
+      {/* Progress Bar (Fixed Bottom) */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-6 animate-in slide-in-from-bottom-8 duration-1000">
+        <GlassCard className="p-6 shadow-2xl border-white/60 backdrop-blur-2xl">
+          <div className="flex justify-between items-end mb-3">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em] mb-1">Your Progress</span>
+              <span className="text-2xl font-light text-charcoal">{progress}% Completed</span>
+            </div>
+            
+            {progress === 100 && !isSubmitted ? (
+              <PillButton 
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="py-2 px-6 text-[10px] h-10 flex items-center gap-2"
+              >
+                {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                Submit Text
+              </PillButton>
+            ) : isSubmitted ? (
+              <div className="flex items-center gap-2 text-terracotta bg-terracotta/5 px-4 py-2 rounded-full border border-terracotta/10">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Submitted</span>
+              </div>
+            ) : (
+              <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest mb-1">
+                Keep Exploring
+              </span>
+            )}
+          </div>
+          <div className="h-2 w-full bg-charcoal/5 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-terracotta transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(232,155,108,0.4)]"
+              style={{ width: `${progress}%`, opacity: 0.4 + (progress / 100) * 0.6 }}
+            />
+          </div>
+        </GlassCard>
+      </div>
+
       {/* Student Session Header */}
       {student && (
         <div className="fixed top-6 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700">
           <GlassCard className="flex items-center gap-6 px-6 py-3 border-white/40 shadow-lg">
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">Logged in as</span>
+              <div className="flex items-center gap-2 mb-0.5">
+                {student.auth_user_id && <Mail className="w-3 h-3 text-terracotta/40" />}
+                <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">Logged in as</span>
+              </div>
               <span className="text-sm text-charcoal font-medium">{student.name}</span>
             </div>
             <div className="w-px h-8 bg-charcoal/10" />

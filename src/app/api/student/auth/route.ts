@@ -5,23 +5,34 @@ import { createStudentSession } from '@/lib/auth/student';
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, classId, name, pin } = await request.json();
+    const { action, classId, name, pin, auth_user_id } = await request.json();
 
     if (!classId || !name || !pin || !/^\d{4}$/.test(pin)) {
       return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 });
     }
 
     // 1. Check if student exists
-    const { data: existingStudent, error: fetchError } = await supabase
+    let { data: existingStudent, error: fetchError } = await supabase
       .from('students')
       .select('*')
       .eq('class_id', classId)
       .eq('name', name.trim())
       .single();
 
+    // If not found by name, try finding by auth_user_id if provided
+    if (!existingStudent && auth_user_id) {
+      const { data: linkedStudent } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', classId)
+        .eq('auth_user_id', auth_user_id)
+        .single();
+      existingStudent = linkedStudent;
+    }
+
     if (action === 'join') {
       if (existingStudent) {
-        return NextResponse.json({ error: 'Name taken, try another' }, { status: 409 });
+        return NextResponse.json({ error: 'Account already exists for this class' }, { status: 409 });
       }
 
       // Create new student
@@ -32,6 +43,7 @@ export async function POST(request: NextRequest) {
           class_id: classId, 
           name: name.trim(), 
           pin: hashedPin,
+          auth_user_id: auth_user_id || null,
           last_login_at: new Date().toISOString()
         }])
         .select()
@@ -51,6 +63,14 @@ export async function POST(request: NextRequest) {
       const isMatch = await bcrypt.compare(pin, existingStudent.pin);
       if (!isMatch) {
         return NextResponse.json({ error: 'Incorrect PIN' }, { status: 401 });
+      }
+
+      // Link auth_user_id if not already linked
+      if (auth_user_id && !existingStudent.auth_user_id) {
+        await supabase
+          .from('students')
+          .update({ auth_user_id })
+          .eq('id', existingStudent.id);
       }
 
       // Update last_login_at

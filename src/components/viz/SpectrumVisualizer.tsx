@@ -11,14 +11,19 @@ interface SpectrumProps {
   title?: string
 }
 
+interface TooltipEmotion {
+  name: string
+  color: string
+  agreement?: string
+}
+
 interface TooltipState {
   x: number
   y: number
   content: {
     studentName: string
-    emotion: string
+    emotions: TooltipEmotion[]
     passage: string
-    agreement?: string
   }
 }
 
@@ -32,13 +37,11 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
   const LABEL_WIDTH = 180
   const MARGIN_RIGHT = 40
 
-  // 1. Calculate Majority Emotion for Consolidated View
+  // 1. Calculate Consensus Segments
   const consensusData = useMemo(() => {
     if (textLength === 0) return []
     
-    // Character-by-character frequency map
     const charMap = Array.from({ length: textLength }, () => ({} as Record<string, number>))
-    
     annotations.forEach(ann => {
       for (let i = ann.start_offset; i < ann.end_offset; i++) {
         if (i < textLength) {
@@ -47,30 +50,97 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
       }
     })
 
-    const segments: { start: number, end: number, label: RasaLabel, agreement: number }[] = []
-    let currentSegment: { start: number, label: RasaLabel, agreement: number } | null = null
+    const segments: { 
+      start: number, 
+      end: number, 
+      majorityLabel: RasaLabel | null, 
+      agreement: number,
+      allEmotions: { label: RasaLabel, count: number }[]
+    }[] = []
+
+    let currentEmotions: { label: RasaLabel, count: number }[] = []
+    let start = 0
 
     charMap.forEach((freqs, i) => {
-      const sorted = Object.entries(freqs).sort((a, b) => b[1] - a[1])
-      const majority = sorted[0] // [label, count]
+      const sorted = Object.entries(freqs)
+        .filter(([_, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({
+          label: label as RasaLabel,
+          count
+        }))
       
-      const majorityLabel = majority ? (majority[0] as RasaLabel) : null
-      const agreement = majority ? majority[1] : 0
+      const hash = JSON.stringify(sorted)
+      const currentHash = JSON.stringify(currentEmotions)
 
-      if (!currentSegment || currentSegment.label !== majorityLabel || currentSegment.agreement !== agreement) {
-        if (currentSegment && currentSegment.label) {
-          segments.push({ ...currentSegment, end: i })
+      if (hash !== currentHash) {
+        if (currentEmotions.length > 0) {
+          segments.push({ 
+            start, 
+            end: i, 
+            majorityLabel: currentEmotions[0].label,
+            agreement: currentEmotions[0].count,
+            allEmotions: [...currentEmotions]
+          })
         }
-        currentSegment = majorityLabel ? { start: i, label: majorityLabel, agreement } : null
+        currentEmotions = sorted
+        start = i
       }
     })
     
-    if (currentSegment && currentSegment.label) {
-      segments.push({ ...currentSegment, end: textLength })
+    if (currentEmotions.length > 0) {
+      segments.push({ 
+        start, 
+        end: textLength, 
+        majorityLabel: currentEmotions[0].label,
+        agreement: currentEmotions[0].count,
+        allEmotions: currentEmotions 
+      })
     }
 
     return segments
   }, [annotations, textLength])
+
+  // 2. Calculate Individual Student Segments
+  const studentData = useMemo(() => {
+    return students.map(student => {
+      const studentAnns = annotations.filter(a => a.student_id === student.id)
+      
+      const charEmotions = Array.from({ length: textLength }, () => [] as RasaLabel[])
+      studentAnns.forEach(ann => {
+        for (let i = ann.start_offset; i < ann.end_offset; i++) {
+          if (i < textLength) charEmotions[i].push(ann.rasa_label)
+        }
+      })
+
+      const segments: { start: number, end: number, emotions: RasaLabel[] }[] = []
+      let currentEmotions: RasaLabel[] = []
+      let start = 0
+
+      charEmotions.forEach((emotions, i) => {
+        const hash = emotions.sort().join(',')
+        const currentHash = currentEmotions.sort().join(',')
+
+        if (hash !== currentHash) {
+          if (currentEmotions.length > 0) {
+            segments.push({ start, end: i, emotions: [...currentEmotions] })
+          }
+          currentEmotions = emotions
+          start = i
+        }
+      })
+      
+      if (currentEmotions.length > 0) {
+        segments.push({ start, end: textLength, emotions: [...currentEmotions] })
+      }
+
+      return {
+        student,
+        rawAnnotations: studentAnns,
+        segments
+      }
+    })
+  }, [annotations, students, textLength])
 
   const handleMouseMove = (e: React.MouseEvent, content: TooltipState['content']) => {
     setTooltip({
@@ -82,14 +152,14 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
 
   return (
     <div className="space-y-12 animate-in fade-in duration-1000 select-none" ref={containerRef}>
-      {/* 1. Consolidated View (The "Hero" Band) */}
+      {/* 1. Consolidated View */}
       <GlassCard className="p-10 shadow-lg border-white/40 overflow-hidden relative bg-white/40">
         <h3 className="text-3xl text-charcoal mb-2 font-normal flex items-center justify-between">
           Consensus Spectrum
-          <span className="text-[10px] font-bold text-warm-grey/40 tracking-[0.2em] uppercase">Majority Emotion</span>
+          <span className="text-[10px] font-bold text-warm-grey/40 tracking-[0.2em] uppercase">Aggregated View</span>
         </h3>
         <p className="text-lg text-warm-grey mb-12 font-light">
-          Aggregated emotional landscape across the entire class.
+          Hover to see all emotions present in this segment.
         </p>
 
         <div className="relative overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-charcoal/10 scrollbar-track-transparent">
@@ -102,23 +172,42 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
             >
               <g transform={`translate(${LABEL_WIDTH}, 10)`}>
                 {consensusData.map((seg, i) => (
-                  <rect
-                    key={i}
-                    x={seg.start}
-                    y={0}
-                    width={seg.end - seg.start}
-                    height={60}
-                    fill={RASA_CONFIGS[seg.label].color}
-                    opacity={0.3 + (seg.agreement / students.length) * 0.7}
-                    onMouseMove={(e) => handleMouseMove(e, {
-                      studentName: 'Class Majority',
-                      emotion: RASA_CONFIGS[seg.label].name,
-                      passage: text.substring(seg.start, seg.end),
-                      agreement: `${seg.agreement}/${students.length} students`
-                    })}
-                    onMouseLeave={() => setTooltip(null)}
-                    className="cursor-crosshair transition-opacity duration-300"
-                  />
+                  <g key={i}>
+                    {/* Visual layers for each emotion in the segment */}
+                    {seg.allEmotions.map((em, emIdx) => (
+                      <rect
+                        key={`${i}-${emIdx}`}
+                        x={seg.start}
+                        y={0}
+                        width={seg.end - seg.start}
+                        height={60}
+                        fill={RASA_CONFIGS[em.label].color}
+                        style={{ mixBlendMode: 'multiply' }}
+                        opacity={0.3 + (em.count / students.length) * 0.6}
+                        className="pointer-events-none"
+                      />
+                    ))}
+                    
+                    {/* Hover hitbox */}
+                    <rect
+                      x={seg.start}
+                      y={0}
+                      width={seg.end - seg.start}
+                      height={60}
+                      fill="transparent"
+                      onMouseMove={(e) => handleMouseMove(e, {
+                        studentName: 'Class Consensus',
+                        emotions: seg.allEmotions.map(em => ({
+                          name: RASA_CONFIGS[em.label].name,
+                          color: RASA_CONFIGS[em.label].color,
+                          agreement: `${em.count}/${students.length} students`
+                        })),
+                        passage: text.substring(seg.start, seg.end)
+                      })}
+                      onMouseLeave={() => setTooltip(null)}
+                      className="cursor-crosshair"
+                    />
+                  </g>
                 ))}
               </g>
             </svg>
@@ -126,7 +215,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
         </div>
       </GlassCard>
 
-      {/* 2. Individual Spectrum (The "Barcode" Stacks) */}
+      {/* 2. Individual Spectrum */}
       <GlassCard className="p-10 shadow-lg border-white/40 overflow-hidden relative bg-white/40">
         <h3 className="text-3xl text-charcoal mb-12 font-normal flex items-center justify-between">
           Student Spectrum
@@ -141,13 +230,11 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
               viewBox={`0 0 ${LABEL_WIDTH + textLength + MARGIN_RIGHT} ${students.length * (BAND_HEIGHT + BAND_GAP) + 60}`}
               className="w-full"
             >
-              {students.map((student, sIdx) => {
-                const studentAnns = annotations.filter(a => a.student_id === student.id)
+              {studentData.map(({ student, rawAnnotations, segments }, sIdx) => {
                 const y = sIdx * (BAND_HEIGHT + BAND_GAP)
 
                 return (
                   <g key={student.id} transform={`translate(0, ${y})`}>
-                    {/* Name Label */}
                     <text
                       x={LABEL_WIDTH - 20}
                       y={BAND_HEIGHT / 2}
@@ -158,7 +245,6 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                       {student.name}
                     </text>
 
-                    {/* Band Background */}
                     <rect 
                       x={LABEL_WIDTH} 
                       y={0} 
@@ -168,9 +254,9 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                       className="opacity-50"
                     />
 
-                    {/* Emotion Stripes */}
                     <g transform={`translate(${LABEL_WIDTH}, 0)`}>
-                      {studentAnns.map((ann) => (
+                      {/* Visual layers (multiply blend) */}
+                      {rawAnnotations.map((ann) => (
                         <rect
                           key={ann.id}
                           x={ann.start_offset}
@@ -179,11 +265,27 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                           height={BAND_HEIGHT}
                           fill={RASA_CONFIGS[ann.rasa_label].color}
                           style={{ mixBlendMode: 'multiply' }}
-                          className="opacity-60 cursor-crosshair hover:opacity-100 transition-opacity"
+                          className="opacity-80 pointer-events-none"
+                        />
+                      ))}
+                      
+                      {/* Hover hitboxes */}
+                      {segments.map((seg, idx) => (
+                        <rect
+                          key={`hover-${idx}`}
+                          x={seg.start}
+                          y={0}
+                          width={seg.end - seg.start}
+                          height={BAND_HEIGHT}
+                          fill="transparent"
+                          className="cursor-crosshair"
                           onMouseMove={(e) => handleMouseMove(e, {
                             studentName: student.name,
-                            emotion: RASA_CONFIGS[ann.rasa_label].name,
-                            passage: text.substring(ann.start_offset, ann.end_offset)
+                            emotions: seg.emotions.map(label => ({
+                              name: RASA_CONFIGS[label].name,
+                              color: RASA_CONFIGS[label].color
+                            })),
+                            passage: text.substring(seg.start, seg.end)
                           })}
                           onMouseLeave={() => setTooltip(null)}
                         />
@@ -193,7 +295,6 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                 )
               })}
 
-              {/* Progression Arrow */}
               <g transform={`translate(${LABEL_WIDTH}, ${students.length * (BAND_HEIGHT + BAND_GAP) + 30})`}>
                 <line 
                   x1={0} y1={0} x2={textLength} y2={0} 
@@ -225,19 +326,29 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
         >
           <div className="bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl p-6 rounded-2xl max-w-sm animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-start mb-4">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em] mb-1">
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em]">
                   {tooltip.content.studentName}
                 </span>
-                <span className="text-xl font-normal text-charcoal">
-                  {tooltip.content.emotion}
-                </span>
+                <div className="flex flex-col gap-1">
+                  {tooltip.content.emotions.map((em, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full shadow-sm" 
+                        style={{ backgroundColor: em.color }}
+                      />
+                      <span className="text-lg font-normal text-charcoal">
+                        {em.name}
+                      </span>
+                      {em.agreement && (
+                        <span className="glass bg-charcoal/5 px-2 py-0.5 rounded text-[9px] font-bold text-charcoal/60 uppercase ml-auto">
+                          {em.agreement}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              {tooltip.content.agreement && (
-                <span className="glass bg-charcoal/5 px-2 py-1 rounded-md text-[9px] font-bold text-charcoal/60 uppercase">
-                  {tooltip.content.agreement}
-                </span>
-              )}
             </div>
             <div className="h-px bg-charcoal/5 mb-4" />
             <p className="text-sm leading-relaxed text-charcoal/80 font-serif italic line-clamp-6">
@@ -249,4 +360,3 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
     </div>
   )
 }
-

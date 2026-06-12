@@ -3,16 +3,18 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, BookOpen, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Info, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Orb } from '@/components/ui/Orb'
 import { supabase } from '@/lib/supabase/client'
+import { TeacherPinGuard } from '@/components/auth/TeacherPinGuard'
 
 const navItems = [
   { label: 'Dashboard', href: '/teacher/dashboard', icon: LayoutDashboard },
-  { label: 'My Classes', href: '/teacher/dashboard', icon: BookOpen }, // Re-using dashboard for now
   { label: 'Texts', href: '/teacher/texts', icon: BookOpen },
   { label: 'Students', href: '/teacher/students', icon: Users },
+  { label: 'About', href: '/teacher/about', icon: Info },
+  { label: 'How to Use', href: '/teacher/how-to-use', icon: HelpCircle },
   { label: 'Settings', href: '/teacher/settings', icon: Settings },
 ]
 
@@ -68,7 +70,9 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
       {/* Main Content Area */}
       <main className="flex-1 p-12 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
-          {children}
+          <TeacherPinGuard>
+            {children}
+          </TeacherPinGuard>
         </div>
       </main>
     </div>

@@ -12,9 +12,11 @@ import {
   BarChart2, 
   Loader2, 
   AlertTriangle,
-  FileText
+  FileText,
+  TrendingUp,
+  CheckCircle2
 } from 'lucide-react'
-import { Class, Text, Student } from '@/types/database'
+import { Class, Text, Student, Annotation } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { GlassButton } from '@/components/ui/GlassButton'
@@ -25,11 +27,13 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   const [cls, setCls] = useState<Class | null>(null)
   const [texts, setTexts] = useState<Text[]>([])
   const [students, setStudents] = useState<Student[]>([])
+  const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'texts' | 'students'>('texts')
+  const [activeTab, setActiveTab] = useState<'texts' | 'students' | 'progress'>('texts')
   
   // New Text Form State
   const [isAddingText, setIsAddingText] = useState(false)
+  const [editingText, setEditingText] = useState<Text | null>(null)
   const [newText, setNewText] = useState({ title: '', content: '', trigger_warning: '' })
   const [savingText, setSavingText] = useState(false)
 
@@ -72,6 +76,15 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
         .eq('class_id', classId)
         .order('name', { ascending: true })
       setStudents(studentsData || [])
+
+      if (textsData && textsData.length > 0) {
+        const textIds = textsData.map(t => t.id)
+        const { data: annData } = await supabase
+          .from('annotations')
+          .select('*')
+          .in('text_id', textIds)
+        setAnnotations(annData || [])
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -86,16 +99,73 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   const handleAddText = async (e: FormEvent) => {
     e.preventDefault()
     setSavingText(true)
-    const { data, error } = await supabase
-      .from('texts')
-      .insert([{ class_id: classId, title: newText.title, content: newText.content, trigger_warning: newText.trigger_warning || null }])
-      .select()
-    if (!error && data) {
-      setNewText({ title: '', content: '', trigger_warning: '' })
-      setIsAddingText(false)
-      setTexts([data[0], ...texts])
+    
+    if (editingText) {
+      const { data, error } = await supabase
+        .from('texts')
+        .update({ 
+          title: newText.title, 
+          content: newText.content, 
+          trigger_warning: newText.trigger_warning || null 
+        })
+        .eq('id', editingText.id)
+        .select()
+      
+      if (!error && data) {
+        setTexts(texts.map(t => t.id === editingText.id ? data[0] : t))
+        setEditingText(null)
+        setNewText({ title: '', content: '', trigger_warning: '' })
+        setIsAddingText(false)
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('texts')
+        .insert([{ class_id: classId, title: newText.title, content: newText.content, trigger_warning: newText.trigger_warning || null }])
+        .select()
+      if (!error && data) {
+        setNewText({ title: '', content: '', trigger_warning: '' })
+        setIsAddingText(false)
+        setTexts([data[0], ...texts])
+      }
     }
     setSavingText(false)
+  }
+
+  const startEditing = (text: Text) => {
+    setEditingText(text)
+    setNewText({
+      title: text.title,
+      content: text.content,
+      trigger_warning: text.trigger_warning || ''
+    })
+    setIsAddingText(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const calculateStudentProgress = (studentId: string, textId: string) => {
+    const studentAnns = annotations.filter(a => a.student_id === studentId && a.text_id === textId)
+    const text = texts.find(t => t.id === textId)
+    if (!text || text.content.length === 0) return 0
+
+    const intervals = studentAnns
+      .map(a => [a.start_offset, a.end_offset])
+      .sort((a, b) => a[0] - b[0])
+
+    if (intervals.length === 0) return 0
+
+    const merged = [intervals[0]]
+    for (let i = 1; i < intervals.length; i++) {
+      const prev = merged[merged.length - 1]
+      const curr = intervals[i]
+      if (curr[0] <= prev[1]) {
+        prev[1] = Math.max(prev[1], curr[1])
+      } else {
+        merged.push(curr)
+      }
+    }
+
+    const totalCovered = merged.reduce((acc, [start, end]) => acc + (end - start), 0)
+    return Math.min(100, Math.round((totalCovered / text.content.length) * 100))
   }
 
   if (loading) {
@@ -132,11 +202,12 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       <div className="flex gap-10 border-b border-charcoal/5 mb-8">
         {[
           { id: 'texts', label: 'Texts', count: texts.length, icon: BookOpen },
-          { id: 'students', label: 'Students', count: students.length, icon: Users }
+          { id: 'students', label: 'Students', count: students.length, icon: Users },
+          { id: 'progress', label: 'Student Progress', count: students.length, icon: TrendingUp }
         ].map(tab => (
           <button 
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as 'texts' | 'students')}
+            onClick={() => setActiveTab(tab.id as 'texts' | 'students' | 'progress')}
             className={cn(
               "pb-6 px-2 text-lg transition-all relative",
               activeTab === tab.id ? "text-charcoal" : "text-warm-grey hover:text-charcoal opacity-60"
@@ -170,7 +241,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
 
           {isAddingText && (
             <GlassCard className="p-10 shadow-lg border-white/60 animate-in slide-in-from-top-4 duration-500">
-              <h3 className="text-2xl text-charcoal mb-8">Add New Text</h3>
+              <h3 className="text-2xl text-charcoal mb-8">{editingText ? 'Edit Text' : 'Add New Text'}</h3>
               <form onSubmit={handleAddText} className="space-y-6">
                 <div className="space-y-2">
                   <label className="block text-sm text-charcoal/60 px-2">Title</label>
@@ -209,7 +280,11 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                 <div className="flex gap-4 justify-end pt-4">
                   <GlassButton 
                     type="button"
-                    onClick={() => setIsAddingText(false)}
+                    onClick={() => {
+                      setIsAddingText(false)
+                      setEditingText(null)
+                      setNewText({ title: '', content: '', trigger_warning: '' })
+                    }}
                     className="px-8 border-none hover:bg-red-50/20 hover:text-red-500"
                   >
                     Cancel
@@ -220,7 +295,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                     className="px-10 flex items-center gap-3"
                   >
                     {savingText && <Loader2 className="w-5 h-5 animate-spin" />}
-                    Save Text
+                    {editingText ? 'Update Text' : 'Save Text'}
                   </PillButton>
                 </div>
               </form>
@@ -248,21 +323,28 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                       </div>
                     )}
                   </div>
-                  <Link 
-                    href={`/teacher/class/${cls.id}/text/${text.id}/spectrum`}
-                    className="shrink-0"
-                  >
-                    <PillButton className="flex items-center gap-3 px-10">
-                      <BarChart2 className="w-5 h-5" />
-                      View Spectrum
-                    </PillButton>
-                  </Link>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <GlassButton 
+                      onClick={() => startEditing(text)}
+                      className="flex items-center gap-2 py-3 px-6"
+                    >
+                      Edit
+                    </GlassButton>
+                    <Link 
+                      href={`/teacher/class/${cls.id}/text/${text.id}/spectrum`}
+                    >
+                      <PillButton className="flex items-center gap-3 px-10">
+                        <BarChart2 className="w-5 h-5" />
+                        View Spectrum
+                      </PillButton>
+                    </Link>
+                  </div>
                 </GlassCard>
               ))
             )}
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'students' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
           <h2 className="text-3xl text-charcoal font-light">Enrolled Students</h2>
           <GlassCard className="p-0 shadow-lg border-white/40 overflow-hidden">
@@ -304,6 +386,73 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
               </tbody>
             </table>
           </GlassCard>
+        </div>
+      ) : (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="flex justify-between items-center">
+            <h2 className="text-3xl text-charcoal font-light">Engagement Overview</h2>
+            <div className="flex items-center gap-4 text-xs font-bold text-warm-grey/60 uppercase tracking-widest">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-terracotta/20" />
+                In Progress
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-terracotta" />
+                Completed
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8">
+            {students.length === 0 ? (
+              <GlassCard className="py-24 text-center border-dashed border-2 border-white/30 bg-white/10">
+                <Users className="w-16 h-16 text-warm-grey/40 mx-auto mb-6" />
+                <p className="text-warm-grey text-xl font-light">No students enrolled yet.</p>
+              </GlassCard>
+            ) : (
+              students.map((student) => (
+                <GlassCard key={student.id} className="p-10 shadow-sm border-white/40">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-terracotta/20 to-terracotta/5 flex items-center justify-center text-terracotta font-bold text-xl border border-terracotta/10">
+                        {student.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="text-2xl text-charcoal font-normal">{student.name}</h3>
+                        <p className="text-sm text-warm-grey/60">Individual annotation metrics</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {texts.map((text) => {
+                      const progress = calculateStudentProgress(student.id, text.id)
+                      return (
+                        <div key={text.id} className="bg-white/30 rounded-2xl p-6 border border-white/40">
+                          <div className="flex justify-between items-start mb-4">
+                            <span className="text-sm font-medium text-charcoal/80 line-clamp-1 pr-4">{text.title}</span>
+                            {progress === 100 && <CheckCircle2 className="w-4 h-4 text-terracotta shrink-0" />}
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-end">
+                              <span className="text-3xl font-light text-charcoal">{progress}%</span>
+                              <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-wider mb-1">Coverage</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-terracotta transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(232,155,108,0.4)]"
+                                style={{ width: `${progress}%`, opacity: 0.3 + (progress / 100) * 0.7 }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </GlassCard>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
