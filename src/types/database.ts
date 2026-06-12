@@ -65,3 +65,14 @@ export interface Annotation {
   rasa_label: RasaLabel;
   created_at: string;
 }
+
+export interface WritingSubmission {
+  id: string;
+  text_id: string;
+  student_id: string;
+  content: string;
+  prompt_type: 'choice' | 'random';
+  selected_emotion: RasaLabel | null;
+  selected_annotation_ids: string[] | null;
+  created_at: string;
+}

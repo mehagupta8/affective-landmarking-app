@@ -27,6 +27,7 @@ export default function StudentDashboard() {
   const [cls, setCls] = useState<Class | null>(null)
   const [texts, setTexts] = useState<Text[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [writingSubmissions, setWritingSubmissions] = useState<WritingSubmission[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -41,16 +42,18 @@ export default function StudentDashboard() {
       const meData = await meRes.json()
       setStudent(meData)
 
-      // 2. Fetch Class, Texts, and Student Annotations
-      const [classRes, textsRes, annRes] = await Promise.all([
+      // 2. Fetch Class, Texts, Annotations, and Writing Submissions
+      const [classRes, textsRes, annRes, writingRes] = await Promise.all([
         supabase.from('classes').select('*').eq('id', meData.class_id).single(),
         supabase.from('texts').select('*').eq('class_id', meData.class_id).order('created_at', { ascending: false }),
-        supabase.from('annotations').select('*').eq('student_id', meData.id)
+        supabase.from('annotations').select('*').eq('student_id', meData.id),
+        supabase.from('writing_submissions').select('*').eq('student_id', meData.id)
       ])
 
       if (classRes.data) setCls(classRes.data)
       if (textsRes.data) setTexts(textsRes.data)
       if (annRes.data) setAnnotations(annRes.data)
+      if (writingRes.data) setWritingSubmissions(writingRes.data)
 
     } catch (err) {
       console.error('Dashboard fetch error:', err)
@@ -153,6 +156,7 @@ export default function StudentDashboard() {
                 texts.map((text) => {
                   const progress = calculateProgress(text)
                   const isSubmitted = student.submitted_texts?.includes(text.id)
+                  const hasWriting = writingSubmissions.find(s => s.text_id === text.id)
                   const isPastDeadline = text.due_date && new Date(text.due_date) < new Date()
                   const isLocked = isSubmitted || isPastDeadline
 
@@ -197,12 +201,21 @@ export default function StudentDashboard() {
 
                         <div className="flex items-center gap-3 shrink-0">
                           {isSubmitted ? (
-                            <Link href={`/annotate/${text.id}/spectrum?student=${student.id}`}>
-                              <PillButton className="flex items-center gap-2 px-8 py-3 bg-white text-charcoal border border-charcoal/5">
-                                <BarChart2 className="w-4 h-4" />
-                                Class Spectrum
-                              </PillButton>
-                            </Link>
+                            <div className="flex flex-col gap-2">
+                              <Link href={`/annotate/${text.id}/spectrum?student=${student.id}`}>
+                                <PillButton className="w-full flex items-center justify-center gap-2 px-8 py-3 bg-white text-charcoal border border-charcoal/5 shadow-sm">
+                                  <BarChart2 className="w-4 h-4" />
+                                  Class Spectrum
+                                </PillButton>
+                              </Link>
+                              <Link href={`/annotate/${text.id}/writing`}>
+                                <PillButton className="w-full flex items-center justify-center gap-2 px-8 py-3">
+                                  <Sparkles className="w-4 h-4" />
+                                  {hasWriting ? 'View Reflection' : 'Writing Activity'}
+                                  <ArrowRight className="w-4 h-4" />
+                                </PillButton>
+                              </Link>
+                            </div>
                           ) : (
                             <Link href={`/annotate/${text.id}?student=${student.id}`}>
                               <PillButton className="flex items-center gap-2 px-10 py-4">
