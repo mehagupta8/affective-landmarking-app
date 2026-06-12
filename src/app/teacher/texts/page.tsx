@@ -13,7 +13,10 @@ import {
   BookOpen,
   TrendingUp,
   Copy,
-  Check
+  Check,
+  MoreVertical,
+  Trash2,
+  Edit2
 } from 'lucide-react'
 import { Text, Class } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -34,6 +37,9 @@ export default function TextsPage() {
   const [cloningTextId, setCloningTextId] = useState<string | null>(null)
   const [isCloning, setIsCloning] = useState(false)
   const [clonedSuccessId, setClonedSuccessId] = useState<string | null>(null)
+  
+  // Menu State
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
 
   const [editingText, setEditingText] = useState<TextWithClass | null>(null)
   const [editFormData, setEditFormData] = useState({ 
@@ -136,6 +142,15 @@ export default function TextsPage() {
       setEditingText(null)
     }
     setSaving(false)
+  }
+
+  const handleDeleteText = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this text? This will remove all associated student annotations.')) return
+    
+    const { error } = await supabase.from('texts').delete().eq('id', id)
+    if (!error) {
+      setTexts(texts.filter(t => t.id !== id))
+    }
   }
 
   const startEditing = (text: TextWithClass) => {
@@ -278,81 +293,51 @@ export default function TextsPage() {
         ) : (
           texts.filter(t => t && t.id).map((text) => (
             <GlassCard key={text.id} className="p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group hover:-translate-y-1 transition-all duration-500 shadow-sm border-white/40">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
+              <div className="space-y-4 flex-1">
+                <div className="space-y-1">
                   <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500">{text.title}</h3>
-                  <span className="glass bg-white/60 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest text-warm-grey uppercase border-white/80 flex items-center gap-1.5">
-                    <BookOpen className="w-3 h-3" />
-                    {text.classes?.name || 'Unassigned'}
-                  </span>
+                  {text.author && <p className="text-lg text-warm-grey/60 font-light italic">by {text.author}</p>}
                 </div>
-                <p className="text-sm text-warm-grey/60 font-light">
-                  Added {new Date(text.created_at).toLocaleDateString()}
-                </p>
-                {text.due_date && (
-                  <div className={cn(
-                    "flex items-center gap-2 text-[10px] font-bold px-3 py-1 rounded-full border w-fit",
-                    new Date(text.due_date) < new Date() 
-                      ? "bg-red-50 text-red-500 border-red-100" 
-                      : "bg-terracotta/5 text-terracotta/80 border-terracotta/10"
-                  )}>
-                    <TrendingUp className="w-3 h-3" />
-                    DUE: {new Date(text.due_date).toLocaleString()}
-                  </div>
-                )}
-                {text.trigger_warning && (
-                  <div className="flex items-center gap-2 text-terracotta/80 text-sm bg-terracotta/5 px-4 py-1.5 rounded-full border border-terracotta/10 w-fit">
-                    <AlertTriangle className="w-4 h-4" />
-                    TW: {text.trigger_warning}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="relative">
-                  <GlassButton 
-                    onClick={() => setCloningTextId(cloningTextId === text.id ? null : text.id)}
-                    className={cn(
-                      "flex items-center gap-2 py-3 px-6",
-                      clonedSuccessId === text.id && "text-green-500 border-green-200"
-                    )}
-                  >
-                    {clonedSuccessId === text.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {clonedSuccessId === text.id ? 'Cloned!' : 'Clone to...'}
-                  </GlassButton>
 
-                  {cloningTextId === text.id && (
-                    <div className="absolute top-full right-0 mt-2 z-20 w-64 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 animate-in fade-in zoom-in duration-200">
-                      <div className="px-3 py-2 border-b border-charcoal/5 mb-2">
-                        <span className="text-[10px] font-black text-terracotta uppercase tracking-widest">Select Target Class</span>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto space-y-1">
-                        {classes.filter(c => c.id !== text.class_id).map(cls => (
-                          <button
-                            key={cls.id}
-                            onClick={() => handleCloneToClass(text, cls.id)}
-                            disabled={isCloning}
-                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-terracotta/5 hover:text-terracotta transition-colors text-sm flex items-center justify-between group"
-                          >
-                            <span className="truncate">{cls.name}</span>
-                            <Plus className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </button>
-                        ))}
-                        {classes.filter(c => c.id !== text.class_id).length === 0 && (
-                          <div className="px-3 py-4 text-center text-xs text-warm-grey/60 italic">
-                            No other classes available.
-                          </div>
-                        )}
+                <div className="flex flex-wrap gap-4 items-center">
+                  <div className="flex flex-col gap-1 pr-6 border-r border-charcoal/5">
+                    <span className="text-[8px] font-black text-warm-grey/40 uppercase tracking-[0.2em]">Assigned To</span>
+                    <div className="flex items-center gap-2 text-charcoal/60">
+                      <BookOpen className="w-3.5 h-3.5 text-terracotta/40" />
+                      <span className="text-sm font-medium">{text.classes?.name || 'Unassigned'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 pr-6 border-r border-charcoal/5">
+                    <span className="text-[8px] font-black text-warm-grey/40 uppercase tracking-[0.2em]">Created</span>
+                    <span className="text-sm text-charcoal/60">{new Date(text.created_at).toLocaleDateString()}</span>
+                  </div>
+
+                  {text.due_date && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[8px] font-black text-warm-grey/40 uppercase tracking-[0.2em]">Deadline</span>
+                      <div className={cn(
+                        "flex items-center gap-2 text-xs font-bold px-3 py-0.5 rounded-full border w-fit",
+                        new Date(text.due_date) < new Date() 
+                          ? "bg-red-50 text-red-500 border-red-100" 
+                          : "bg-terracotta/5 text-terracotta/80 border-terracotta/10"
+                      )}>
+                        <TrendingUp className="w-3 h-3" />
+                        {new Date(text.due_date).toLocaleString()}
                       </div>
                     </div>
                   )}
                 </div>
 
-                <GlassButton 
-                  onClick={() => startEditing(text)}
-                  className="flex items-center gap-2 py-3 px-6"
-                >
-                  Edit
-                </GlassButton>
+                {text.trigger_warning && (
+                  <div className="flex items-center gap-2 text-terracotta/80 text-[10px] font-bold bg-terracotta/5 px-3 py-1 rounded-full border border-terracotta/10 w-fit uppercase tracking-widest">
+                    <AlertTriangle className="w-3 h-3" />
+                    TW: {text.trigger_warning}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-4 shrink-0">
                 <Link 
                   href={`/teacher/class/${text.class_id}/text/${text.id}/spectrum`}
                 >
@@ -361,6 +346,77 @@ export default function TextsPage() {
                     View Spectrum
                   </PillButton>
                 </Link>
+
+                <div className="relative">
+                  <button 
+                    onClick={() => setActiveMenuId(activeMenuId === text.id ? null : text.id)}
+                    className="p-3 hover:bg-white/60 rounded-full text-warm-grey/40 hover:text-charcoal transition-all border border-transparent hover:border-white/60"
+                  >
+                    <MoreVertical className="w-6 h-6" />
+                  </button>
+
+                  {activeMenuId === text.id && (
+                    <div className="absolute top-full right-0 mt-2 z-30 w-56 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 animate-in fade-in zoom-in duration-200">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => {
+                            startEditing(text)
+                            setActiveMenuId(null)
+                          }}
+                          className="w-full text-left px-4 py-3 rounded-xl hover:bg-charcoal/5 transition-colors text-sm flex items-center gap-3 text-charcoal"
+                        >
+                          <Edit2 className="w-4 h-4 text-terracotta/60" />
+                          Edit Details
+                        </button>
+                        
+                        <div className="relative group/clone">
+                          <button
+                            className="w-full text-left px-4 py-3 rounded-xl hover:bg-charcoal/5 transition-colors text-sm flex items-center justify-between text-charcoal"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Copy className="w-4 h-4 text-terracotta/60" />
+                              Clone to Class
+                            </div>
+                            <Plus className="w-3 h-3 text-warm-grey/40" />
+                          </button>
+                          
+                          <div className="absolute right-full top-0 mr-2 w-64 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 hidden group-hover/clone:block animate-in fade-in slide-in-from-right-2">
+                            <div className="px-3 py-2 border-b border-charcoal/5 mb-1">
+                              <span className="text-[9px] font-black text-terracotta uppercase tracking-widest">Select Target Class</span>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto">
+                              {classes.filter(c => c.id !== text.class_id).map(cls => (
+                                <button
+                                  key={cls.id}
+                                  onClick={() => handleCloneToClass(text, cls.id)}
+                                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-terracotta/5 hover:text-terracotta transition-colors text-xs flex items-center justify-between"
+                                >
+                                  {cls.name}
+                                </button>
+                              ))}
+                              {classes.filter(c => c.id !== text.class_id).length === 0 && (
+                                <div className="p-3 text-center text-[10px] text-warm-grey italic">No other classes</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="h-px bg-charcoal/5 my-1" />
+                        
+                        <button
+                          onClick={() => {
+                            handleDeleteText(text.id)
+                            setActiveMenuId(null)
+                          }}
+                          className="w-full text-left px-4 py-3 rounded-xl hover:bg-red-50 transition-colors text-sm flex items-center gap-3 text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Text
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </GlassCard>
           ))
