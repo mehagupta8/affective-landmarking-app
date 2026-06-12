@@ -14,7 +14,8 @@ import {
   LogOut,
   ChevronRight,
   ArrowRight,
-  Mail
+  Mail,
+  Sparkles
 } from 'lucide-react'
 import { Text, Class, Annotation, Student } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
