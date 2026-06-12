@@ -23,17 +23,20 @@ export function Orb({ size = "md", className, animate = true }: OrbProps) {
         xmlns="http://www.w3.org/2000/svg"
         className={cn("w-full h-full", animate && "animate-breathe")}
       >
+        {/* Top Irregular Wave - High and Low Amplitudes */}
         <path
-          d="M0 20C20 10 30 30 50 20C70 10 80 30 100 20"
+          d="M0 25C15 5 25 35 40 15C55 -5 70 30 85 10C95 0 100 20 100 20"
           stroke="currentColor"
-          strokeWidth="4"
+          strokeWidth="3.5"
           strokeLinecap="round"
-          className="text-terracotta opacity-80"
+          className="text-terracotta opacity-90"
         />
+        
+        {/* Bottom Similar but Not Equal Wave */}
         <path
-          d="M0 30C20 20 30 40 50 30C70 20 80 40 100 30"
+          d="M0 35C10 20 20 45 35 25C50 5 65 40 80 20C90 10 100 30 100 30"
           stroke="currentColor"
-          strokeWidth="4"
+          strokeWidth="3.5"
           strokeLinecap="round"
           className="text-terracotta/40"
         />

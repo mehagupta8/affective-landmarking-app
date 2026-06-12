@@ -12,7 +12,6 @@ import { TeacherPinGuard } from '@/components/auth/TeacherPinGuard'
 const navItems = [
   { label: 'Dashboard', href: '/teacher/dashboard', icon: LayoutDashboard },
   { label: 'Texts', href: '/teacher/texts', icon: BookOpen },
-  { label: 'Students', href: '/teacher/students', icon: Users },
   { label: 'About', href: '/teacher/about', icon: Info },
   { label: 'How to Use', href: '/teacher/how-to-use', icon: HelpCircle },
   { label: 'Settings', href: '/teacher/settings', icon: Settings },
