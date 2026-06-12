@@ -53,6 +53,9 @@ export interface Student {
   class_id: string;
   name: string;
   pin: string | null;
+  auth_user_id: string | null;
+  last_login_at: string | null;
+  submitted_texts: string[] | null;
   created_at: string;
 }
 
