@@ -88,7 +88,7 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
     if (selectedAnns.find(a => a.id === ann.id)) {
       setSelectedAnns(selectedAnns.filter(a => a.id !== ann.id))
     } else {
-      if (selectedAnns.length < 2) {
+      if (selectedAnns.length < 5) {
         setSelectedAnns([...selectedAnns, ann])
       }
     }
@@ -160,7 +160,7 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                 <div className="space-y-2">
                   <h3 className="text-2xl text-charcoal">Choose Your Moment</h3>
                   <p className="text-sm text-warm-grey leading-relaxed">
-                    Select up to two of your own highlights to analyze. Pick segments that felt particularly resonant or confusing.
+                    Select up to five of your own highlights to analyze. Pick segments that felt particularly resonant or confusing.
                   </p>
                 </div>
                 <div className="w-full pt-4">
@@ -260,22 +260,12 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                       <p className="text-xs text-warm-grey italic">No existing highlights for this emotion. Look back at the text to find a relevant moment.</p>
                     </div>
                   )}
-                  
-                  <div className="bg-terracotta/5 p-8 rounded-3xl border border-terracotta/10 space-y-4">
-                    <h4 className="text-xs font-bold text-terracotta uppercase tracking-widest">Guiding Questions</h4>
-                    <ul className="space-y-3 text-xs text-charcoal/70 leading-relaxed list-disc list-outside ml-4">
-                      <li>What specific words or images in this passage triggered this emotion?</li>
-                      <li>How does this emotional moment shift your understanding of the text&apos;s overall atmosphere?</li>
-                      <li>Is this feeling pure, or is it complicated by another Rasa?</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
 
               <div className="lg:col-span-3 space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em]">Your Reflection</h3>
-                  <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest">Minimalism encouraged</span>
                 </div>
                 <textarea
                   value={writingContent}
