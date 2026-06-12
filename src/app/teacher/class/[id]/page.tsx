@@ -418,7 +418,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                     >
                       <PillButton className="flex items-center gap-3 px-10">
                         <BarChart2 className="w-5 h-5" />
-                        View Spectrum
+                        View Results
                       </PillButton>
                     </Link>
                   </div>
