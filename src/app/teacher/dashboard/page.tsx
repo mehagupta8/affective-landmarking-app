@@ -119,7 +119,7 @@ export default function Dashboard() {
     <div className="space-y-16 animate-in fade-in duration-1000">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="space-y-3">
-          <h1 className="text-5xl font-normal text-charcoal">Your Classes</h1>
+          <h1 className="text-6xl font-normal text-charcoal">Your Classes</h1>
           <p className="text-warm-grey text-xl font-light">Manage your active classes and view student progress.</p>
         </div>
 
@@ -159,7 +159,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-charcoal/10 backdrop-blur-sm animate-in fade-in duration-300">
           <GlassCard className="max-w-md w-full p-10 shadow-2xl border-white/60">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl text-charcoal">Edit Class Info</h3>
+              <h3 className="text-3xl text-charcoal">Edit Class Info</h3>
               <button onClick={() => setEditingClass(null)} className="text-warm-grey hover:text-charcoal transition-colors">
                 <X className="w-6 h-6" />
               </button>
@@ -201,7 +201,7 @@ export default function Dashboard() {
           <div className="bg-white/40 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm backdrop-blur-sm">
             <Users className="w-12 h-12 text-warm-grey/40" />
           </div>
-          <h3 className="text-3xl text-charcoal font-light">No classes yet</h3>
+          <h3 className="text-4xl text-charcoal font-light">No classes yet</h3>
           <p className="text-warm-grey mt-3 text-lg">
             Start by creating your first class using the portal above.
           </p>
@@ -217,7 +217,7 @@ export default function Dashboard() {
                   
                   <div className="relative z-10">
                     <div className="flex justify-between items-start mb-6">
-                      <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500 pr-4 font-normal leading-tight">
+                      <h3 className="text-4xl text-charcoal group-hover:text-terracotta transition-colors duration-500 pr-4 font-normal leading-tight">
                         {cls.name}
                       </h3>
                       <span className="glass bg-white/90 text-charcoal text-[10px] tracking-widest font-bold px-4 py-1.5 rounded-full border border-white/50 uppercase shadow-sm shrink-0">

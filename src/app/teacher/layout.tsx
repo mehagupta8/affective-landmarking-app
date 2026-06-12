@@ -31,10 +31,12 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex atmospheric-bg overflow-hidden">
       {/* Glass Sidebar */}
-      <aside className="w-72 glass m-6 rounded-[28px] flex flex-col p-8 space-y-10 h-[calc(100vh-3rem)] sticky top-6">
+      <aside className="w-80 glass m-6 rounded-[28px] flex flex-col p-8 space-y-10 h-[calc(100vh-3rem)] sticky top-6">
         <div className="flex items-center space-x-4 px-2">
-          <Orb size="md" className="shadow-[0_0_20px_rgba(232,155,108,0.3)]" />
-          <span className="text-2xl tracking-tight text-charcoal">Affective</span>
+          <Orb size="md" className="shrink-0" />
+          <span className="text-xl font-bold tracking-tight text-charcoal leading-none">
+            Affective<br />Landmarking
+          </span>
         </div>
 
         <nav className="flex-1 space-y-3">

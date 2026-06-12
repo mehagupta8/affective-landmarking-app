@@ -114,10 +114,10 @@ export default function StudentDashboard() {
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Orb size="sm" className="shadow-[0_0_20px_rgba(232,155,108,0.3)]" />
-              <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.3em]">Student Portal</span>
+              <Orb size="sm" />
+              <span className="text-[12px] font-black text-terracotta uppercase tracking-[0.3em]">Student Portal</span>
             </div>
-            <h1 className="text-5xl font-normal text-charcoal">Welcome, {student.name}</h1>
+            <h1 className="text-6xl font-normal text-charcoal">Welcome, {student.name}</h1>
             <div className="flex flex-wrap gap-4 items-center">
               <span className="glass bg-white/60 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] text-charcoal/60 uppercase border-white/80 flex items-center gap-2">
                 <BookOpen className="w-3.5 h-3.5 text-terracotta/40" />

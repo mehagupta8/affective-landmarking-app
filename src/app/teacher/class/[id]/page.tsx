@@ -207,7 +207,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
             <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Dashboard
           </Link>
-          <h1 className="text-5xl font-normal text-charcoal">
+          <h1 className="text-6xl font-normal text-charcoal">
             {cls.name}
           </h1>
           <span className="inline-block glass bg-white/60 px-4 py-1 rounded-full text-[10px] font-bold tracking-[0.2em] text-terracotta uppercase border-white/80">
@@ -245,7 +245,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       {activeTab === 'texts' ? (
         <div className="space-y-8">
           <div className="flex justify-between items-center">
-            <h2 className="text-3xl text-charcoal font-light">Class Library</h2>
+            <h2 className="text-4xl text-charcoal font-light">Class Library</h2>
             {!isAddingText && (
               <GlassButton 
                 onClick={() => setIsAddingText(true)}
@@ -429,7 +429,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
         </div>
       ) : activeTab === 'students' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
-          <h2 className="text-3xl text-charcoal font-light">Enrolled Students</h2>
+          <h2 className="text-4xl text-charcoal font-light">Enrolled Students</h2>
           <GlassCard className="p-0 shadow-lg border-white/40 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -473,7 +473,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       ) : (
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="flex justify-between items-center">
-            <h2 className="text-3xl text-charcoal font-light">Engagement Overview</h2>
+            <h2 className="text-4xl text-charcoal font-light">Engagement Overview</h2>
             <div className="flex items-center gap-4 text-xs font-bold text-warm-grey/60 uppercase tracking-widest">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-terracotta/20" />

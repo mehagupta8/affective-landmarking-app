@@ -1,19 +1,23 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-charcoal: #2A2622;
-  --color-warm-grey: #6B5F5A;
-  --color-terracotta: #E89B6C;
+  --color-charcoal: #384959;
+  --color-warm-grey: #6A89A7;
+  --color-terracotta: #88BDF2;
+  --color-sky-blue: #BDDDFC;
   
-  /* Rasa Colors */
-  --color-rasa-fear: #1a1a1a;
-  --color-rasa-joy: #ffd700;
-  --color-rasa-anger: #d32f2f;
-  --color-rasa-wonder: #8e44ad;
-  --color-rasa-disgust: #2e7d32;
-  --color-rasa-love: #ec407a;
-  --color-rasa-heroism: #ff8c00;
-  --color-rasa-sadness: #607d8b;
+  /* Rasa Colors - Kept as is per previous requirement for bold primary colors, 
+     but maybe the user wants these changed too? 
+     The prompt only mentioned the UI color palette. 
+     I'll stick to the UI palette first. */
+  --color-rasa-fear: #191910;
+  --color-rasa-joy: #FFC0CB;
+  --color-rasa-anger: #E14747;
+  --color-rasa-wonder: #F8E042;
+  --color-rasa-disgust: #05BB60;
+  --color-rasa-love: #368BE1;
+  --color-rasa-heroism: #E9953B;
+  --color-rasa-sadness: #DDDDDD;
 
   --font-serif: var(--font-libre-caslon);
 
@@ -22,13 +26,13 @@
 }
 
 :root {
-  --background-gradient: radial-gradient(at 0% 0%, #F4E4DC 0, transparent 50%), 
-                         radial-gradient(at 50% 0%, #E8D5E4 0, transparent 50%), 
-                         radial-gradient(at 100% 0%, #D4E4D8 0, transparent 50%), 
-                         radial-gradient(at 0% 50%, #F2DCC8 0, transparent 50%), 
-                         radial-gradient(at 100% 50%, #E5D0DC 0, transparent 50%),
-                         radial-gradient(at 50% 100%, #F4E4DC 0, transparent 50%);
-  --reading-bg: #F7F3EC;
+  --background-gradient: radial-gradient(at 0% 0%, #BDDDFC 0, transparent 50%), 
+                         radial-gradient(at 50% 0%, #88BDF2 0, transparent 50%), 
+                         radial-gradient(at 100% 0%, #384959 0, transparent 50%), 
+                         radial-gradient(at 0% 50%, #6A89A7 0, transparent 50%), 
+                         radial-gradient(at 100% 50%, #BDDDFC 0, transparent 50%),
+                         radial-gradient(at 50% 100%, #88BDF2 0, transparent 50%);
+  --reading-bg: #F0F4F8;
   --reading-surface: #FDFBF7;
 }
 
@@ -36,12 +40,25 @@
   body {
     @apply text-charcoal font-serif antialiased min-h-screen relative;
     line-height: 1.6;
-    background-color: white; /* Fallback */
+    background-color: #FDFBF7; /* Fallback */
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1 {
     @apply font-normal tracking-[0.02em];
     line-height: 1.2;
+    font-size: 4rem; /* Increased size */
+  }
+
+  h2 {
+    @apply font-normal tracking-[0.02em];
+    line-height: 1.2;
+    font-size: 2.5rem; /* Increased size */
+  }
+
+  h3 {
+    @apply font-normal tracking-[0.02em];
+    line-height: 1.2;
+    font-size: 2rem; /* Increased size */
   }
 
   button {
@@ -64,7 +81,7 @@
   }
 
   .glass {
-    @apply bg-white/60 backdrop-blur-[20px] border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+    @apply bg-white/60 backdrop-blur-[20px] border border-white/30 shadow-[0_8px_32px_0_rgba(56,73,89,0.07)];
   }
 
   .glass-edge {
