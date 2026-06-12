@@ -162,14 +162,29 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
           Hover to see all emotions present in this segment.
         </p>
 
-        <div className="relative overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-charcoal/10 scrollbar-track-transparent">
+        <div className="relative overflow-x-auto pb-8 scrollbar-thin scrollbar-thumb-charcoal/10 scrollbar-track-transparent">
           <div style={{ minWidth: LABEL_WIDTH + textLength + MARGIN_RIGHT }}>
             <svg 
               width={LABEL_WIDTH + textLength + MARGIN_RIGHT} 
-              height={80} 
-              viewBox={`0 0 ${LABEL_WIDTH + textLength + MARGIN_RIGHT} 80`}
+              height={140} 
+              viewBox={`0 0 ${LABEL_WIDTH + textLength + MARGIN_RIGHT} 140`}
               className="w-full"
             >
+              {/* Vertical Axis: Emotion */}
+              <g transform="translate(0, 10)">
+                <text
+                  x={LABEL_WIDTH - 20}
+                  y={30}
+                  textAnchor="end"
+                  alignmentBaseline="middle"
+                  className="fill-charcoal font-bold text-sm uppercase tracking-widest font-sans"
+                >
+                  Emotion
+                </text>
+                <line x1={LABEL_WIDTH - 10} y1={0} x2={LABEL_WIDTH - 10} y2={60} stroke="#2A2622" strokeWidth={1} strokeDasharray="4 4" />
+              </g>
+
+              {/* Spectrum Data */}
               <g transform={`translate(${LABEL_WIDTH}, 10)`}>
                 {consensusData.map((seg, i) => (
                   <g key={i}>
@@ -209,6 +224,22 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                     />
                   </g>
                 ))}
+              </g>
+
+              {/* Horizontal Axis: Progress */}
+              <g transform={`translate(${LABEL_WIDTH}, 100)`}>
+                <line 
+                  x1={0} y1={0} x2={textLength} y2={0} 
+                  stroke="#2A2622" strokeWidth={1} strokeDasharray="4 4" 
+                />
+                <path d={`M ${textLength - 10} -5 L ${textLength} 0 L ${textLength - 10} 5`} fill="none" stroke="#2A2622" strokeWidth={1} />
+                <text 
+                  x={textLength / 2} y={20} 
+                  textAnchor="middle" 
+                  className="fill-warm-grey text-[10px] font-bold uppercase tracking-[0.3em]"
+                >
+                  Progress
+                </text>
               </g>
             </svg>
           </div>
@@ -306,7 +337,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                   textAnchor="middle" 
                   className="fill-warm-grey text-[10px] font-bold uppercase tracking-[0.3em]"
                 >
-                  Progression
+                  Progress
                 </text>
               </g>
             </svg>
