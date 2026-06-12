@@ -96,8 +96,8 @@ export default function TextsPage() {
         classes (*)
       `)
     
-    if (!error && data) {
-      setTexts(texts.map(t => t.id === editingText.id ? data[0] as TextWithClass : t))
+    if (!error && data && data.length > 0) {
+      setTexts(texts.map(t => t?.id === editingText.id ? data[0] as TextWithClass : t).filter(Boolean))
       setEditingText(null)
     }
     setSaving(false)
@@ -241,7 +241,7 @@ export default function TextsPage() {
             <p className="text-warm-grey text-xl font-light">You haven&apos;t uploaded any texts yet.</p>
           </GlassCard>
         ) : (
-          texts.map((text) => (
+          texts.filter(t => t && t.id).map((text) => (
             <GlassCard key={text.id} className="p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group hover:-translate-y-1 transition-all duration-500 shadow-sm border-white/40">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
