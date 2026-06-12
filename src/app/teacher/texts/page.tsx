@@ -248,7 +248,7 @@ export default function TextsPage() {
                   <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500">{text.title}</h3>
                   <span className="glass bg-white/60 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest text-warm-grey uppercase border-white/80 flex items-center gap-1.5">
                     <BookOpen className="w-3 h-3" />
-                    {text.classes.name}
+                    {text.classes?.name || 'Unassigned'}
                   </span>
                 </div>
                 <p className="text-sm text-warm-grey/60 font-light">
