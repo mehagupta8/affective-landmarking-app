@@ -40,6 +40,7 @@ export interface Text {
   title: string;
   content: string;
   trigger_warning: string | null;
+  deadline?: string | null;
   created_at: string;
 }
 
@@ -48,7 +49,18 @@ export interface Student {
   class_id: string;
   name: string;
   pin: string | null;
+  auth_user_id?: string | null;
   created_at: string;
+}
+
+export interface Submission {
+  id: string;
+  student_id: string;
+  text_id: string;
+  status: 'draft' | 'submitted' | 'locked';
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Annotation {

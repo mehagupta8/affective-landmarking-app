@@ -47,18 +47,31 @@ export default function Dashboard() {
   const handleCreateClass = async (e: FormEvent) => {
     e.preventDefault()
     setCreating(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const classCode = generateClassCode()
-    const { data, error } = await supabase
-      .from('classes')
-      .insert([{ name: newClassName, teacher_id: user.id, class_code: classCode }])
-      .select()
-    if (!error && data) {
-      setNewClassName('')
-      setClasses([data[0], ...classes])
+    try {
+      let { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        user = session?.user || null
+      }
+      if (!user) {
+        setCreating(false)
+        return
+      }
+      const classCode = generateClassCode()
+      const { data, error } = await supabase
+        .from('classes')
+        .insert([{ name: newClassName, teacher_id: user.id, class_code: classCode }])
+        .select()
+      
+      if (!error && data) {
+        setNewClassName('')
+        setClasses([data[0], ...classes])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCreating(false)
     }
-    setCreating(false)
   }
 
   if (loading) {

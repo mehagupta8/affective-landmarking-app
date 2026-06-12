@@ -26,8 +26,9 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
           setHasPin(false)
         }
       } else {
-        // If no user, we shouldn't be here, but let's allow it to fall through 
-        // and let the layout handle redirection, or just stop loading.
+        // If no user, allow passthrough so login/signup pages can render.
+        // The middleware already protects authenticated routes.
+        setIsVerified(true)
         setLoading(false)
         return
       }

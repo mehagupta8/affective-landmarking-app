@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, use, useMemo } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ChevronLeft, 
@@ -84,14 +84,17 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       setText(textRes.data)
       setAnnotations(annRes.data || [])
       
-      const { data: currentStudent } = await supabase
-        .from('students')
-        .select('submitted_texts')
-        .eq('id', meData.id)
-        .single()
+      const { data: submission } = await supabase
+        .from('submissions')
+        .select('status')
+        .eq('student_id', meData.id)
+        .eq('text_id', textId)
+        .maybeSingle()
       
-      if (currentStudent?.submitted_texts?.includes(textId)) {
+      if (submission && (submission.status === 'submitted' || submission.status === 'locked')) {
         setIsSubmitted(true)
+        router.push(`/annotate/${textId}/submitted`)
+        return
       }
 
       if (textRes.data.trigger_warning) {
@@ -105,7 +108,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   }, [textId, router])
 
   useEffect(() => {
-    void fetchInitialData() // eslint-disable-line react-hooks/set-state-in-effect
+    void fetchInitialData()
   }, [fetchInitialData])
 
   const handleMouseUp = () => {
@@ -162,23 +165,20 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
     if (!student || !textId) return
     setSubmitting(true)
     
-    const { data: current } = await supabase
-      .from('students')
-      .select('submitted_texts')
-      .eq('id', student.id)
-      .single()
-    
-    const submitted = current?.submitted_texts || []
-    if (!submitted.includes(textId)) {
-      const { error } = await supabase
-        .from('students')
-        .update({ submitted_texts: [...submitted, textId] })
-        .eq('id', student.id)
+    const { error } = await supabase
+      .from('submissions')
+      .upsert({
+        student_id: student.id,
+        text_id: textId,
+        status: 'submitted',
+        submitted_at: new Date().toISOString()
+      }, {
+        onConflict: 'student_id,text_id'
+      })
       
-      if (!error) {
-        setIsSubmitted(true)
-        router.push(`/annotate/${textId}/submitted`)
-      }
+    if (!error) {
+      setIsSubmitted(true)
+      router.push(`/annotate/${textId}/submitted`)
     }
     setSubmitting(false)
   }
@@ -219,7 +219,6 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       group.anns.forEach((ann, idx) => {
         element = (
           <span 
-            key={ann.id}
             style={{
               backgroundColor: RASA_CONFIGS[ann.rasa_label].color,
               mixBlendMode: 'multiply',

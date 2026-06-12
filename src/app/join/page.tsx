@@ -150,15 +150,15 @@ export default function JoinPage() {
         .select('*')
         .eq('student_id', result.studentId)
 
-      const { data: currentStudent } = await supabase
-        .from('students')
-        .select('submitted_texts')
-        .eq('id', result.studentId)
-        .single()
+      const { data: submissions } = await supabase
+        .from('submissions')
+        .select('text_id')
+        .eq('student_id', result.studentId)
+        .in('status', ['submitted', 'locked'])
 
       setTexts(classTexts || [])
       setAnnotations(studentAnns || [])
-      setSubmittedTexts(currentStudent?.submitted_texts || [])
+      setSubmittedTexts(submissions?.map(s => s.text_id) || [])
       setStep('select-text')
     } catch (err) {
       setError('An unexpected error occurred.')
