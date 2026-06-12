@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { Orb } from '@/components/ui/Orb'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
+import { MiniSpectrum } from '@/components/viz/MiniSpectrum'
 import { StudentSignOut } from '@/components/student/StudentSignOut'
 
 export default function AnnotationPage({ params }: { params: Promise<{ textId: string }> }) {
@@ -277,10 +278,23 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
               </span>
             )}
           </div>
-          <div className="h-2 w-full bg-charcoal/5 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-charcoal/5 rounded-full overflow-hidden mb-6">
             <div 
               className="h-full bg-terracotta transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(232,155,108,0.4)]"
               style={{ width: `${progress}%`, opacity: 0.4 + (progress / 100) * 0.6 }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[8px] font-black text-charcoal/40 uppercase tracking-[0.2em]">Emotional Barcode (Live)</span>
+              <span className="text-[8px] font-bold text-warm-grey/40 uppercase tracking-widest">Beginning → End</span>
+            </div>
+            <MiniSpectrum 
+              textLength={text?.content.length || 0} 
+              annotations={annotations} 
+              height={32}
+              className="shadow-inner bg-charcoal/[0.02] rounded-lg border border-charcoal/5"
             />
           </div>
         </GlassCard>
