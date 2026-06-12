@@ -17,7 +17,7 @@ import {
   Mail,
   Sparkles
 } from 'lucide-react'
-import { Text, Class, Annotation, Student } from '@/types/database'
+import { Text, Class, Annotation, Student, WritingSubmission } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Orb } from '@/components/ui/Orb'

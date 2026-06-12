@@ -350,7 +350,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                     onClick={() => {
                       setIsAddingText(false)
                       setEditingText(null)
-                      setNewText({ title: '', content: '', trigger_warning: '' })
+                      setNewText({ title: '', author: '', source: '', content: '', instructions: '', trigger_warning: '', due_date: '' })
                     }}
                     className="px-8 border-none hover:bg-red-50/20 hover:text-red-500"
                   >
