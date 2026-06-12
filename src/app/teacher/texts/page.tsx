@@ -11,7 +11,9 @@ import {
   AlertTriangle,
   FileText,
   BookOpen,
-  TrendingUp
+  TrendingUp,
+  Copy,
+  Check
 } from 'lucide-react'
 import { Text, Class } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -25,7 +27,14 @@ interface TextWithClass extends Text {
 
 export default function TextsPage() {
   const [texts, setTexts] = useState<TextWithClass[]>([])
+  const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Clone State
+  const [cloningTextId, setCloningTextId] = useState<string | null>(null)
+  const [isCloning, setIsCloning] = useState(false)
+  const [clonedSuccessId, setClonedSuccessId] = useState<string | null>(null)
+
   const [editingText, setEditingText] = useState<TextWithClass | null>(null)
   const [editFormData, setEditFormData] = useState({ 
     title: '', 
@@ -40,7 +49,7 @@ export default function TextsPage() {
   
   const router = useRouter()
 
-  const fetchAllTexts = useCallback(async () => {
+  const fetchAllData = useCallback(async () => {
     try {
       let { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -52,15 +61,13 @@ export default function TextsPage() {
         return
       }
 
-      const { data, error } = await supabase
-        .from('texts')
-        .select(`
-          *,
-          classes (*)
-        `)
-        .order('created_at', { ascending: false })
+      const [textsRes, classesRes] = await Promise.all([
+        supabase.from('texts').select('*, classes (*)').order('created_at', { ascending: false }),
+        supabase.from('classes').select('*').order('name', { ascending: true })
+      ])
 
-      if (!error) setTexts(data as TextWithClass[] || [])
+      if (!textsRes.error) setTexts(textsRes.data as TextWithClass[] || [])
+      if (!classesRes.error) setClasses(classesRes.data || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -69,8 +76,36 @@ export default function TextsPage() {
   }, [router])
 
   useEffect(() => {
-    void fetchAllTexts()
-  }, [fetchAllTexts])
+    void fetchAllData()
+  }, [fetchAllData])
+
+  const handleCloneToClass = async (text: TextWithClass, targetClassId: string) => {
+    if (targetClassId === text.class_id) return
+    setIsCloning(true)
+    
+    const { data, error } = await supabase
+      .from('texts')
+      .insert([{
+        title: text.title,
+        author: text.author,
+        source: text.source,
+        content: text.content,
+        instructions: text.instructions,
+        trigger_warning: text.trigger_warning,
+        due_date: text.due_date,
+        class_id: targetClassId
+      }])
+      .select('*, classes (*)')
+      .single()
+
+    if (!error && data) {
+      setTexts([data as TextWithClass, ...texts])
+      setClonedSuccessId(text.id)
+      setTimeout(() => setClonedSuccessId(null), 3000)
+    }
+    setCloningTextId(null)
+    setIsCloning(false)
+  }
 
   const handleUpdateText = async (e: FormEvent) => {
     e.preventDefault()
@@ -273,6 +308,45 @@ export default function TextsPage() {
                 )}
               </div>
               <div className="flex items-center gap-4 shrink-0">
+                <div className="relative">
+                  <GlassButton 
+                    onClick={() => setCloningTextId(cloningTextId === text.id ? null : text.id)}
+                    className={cn(
+                      "flex items-center gap-2 py-3 px-6",
+                      clonedSuccessId === text.id && "text-green-500 border-green-200"
+                    )}
+                  >
+                    {clonedSuccessId === text.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {clonedSuccessId === text.id ? 'Cloned!' : 'Clone to...'}
+                  </GlassButton>
+
+                  {cloningTextId === text.id && (
+                    <div className="absolute top-full right-0 mt-2 z-20 w-64 bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-2xl p-2 animate-in fade-in zoom-in duration-200">
+                      <div className="px-3 py-2 border-b border-charcoal/5 mb-2">
+                        <span className="text-[10px] font-black text-terracotta uppercase tracking-widest">Select Target Class</span>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {classes.filter(c => c.id !== text.class_id).map(cls => (
+                          <button
+                            key={cls.id}
+                            onClick={() => handleCloneToClass(text, cls.id)}
+                            disabled={isCloning}
+                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-terracotta/5 hover:text-terracotta transition-colors text-sm flex items-center justify-between group"
+                          >
+                            <span className="truncate">{cls.name}</span>
+                            <Plus className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))}
+                        {classes.filter(c => c.id !== text.class_id).length === 0 && (
+                          <div className="px-3 py-4 text-center text-xs text-warm-grey/60 italic">
+                            No other classes available.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <GlassButton 
                   onClick={() => startEditing(text)}
                   className="flex items-center gap-2 py-3 px-6"
