@@ -46,6 +46,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   // Selection State
   const [selection, setSelection] = useState<{ start: number, end: number, rect: DOMRect } | null>(null)
   const textRef = useRef<HTMLDivElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
 
   const progress = useMemo(() => {
     if (!text || text.content.length === 0) return 0
@@ -382,7 +383,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       </header>
 
       {/* Main Reading Surface */}
-      <main className="w-full max-w-[720px] mb-32 relative">
+      <main ref={mainRef} className="w-full max-w-[720px] mb-32 relative">
         {isPastDeadline && !isSubmitted && (
           <div className="mb-8 p-6 bg-red-50 border border-red-100 rounded-3xl flex items-center gap-4 text-red-600 animate-in slide-in-from-top-4 duration-700">
             <AlertTriangle className="w-6 h-6 shrink-0" />
@@ -447,16 +448,16 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
         </div>
 
         {/* Floating Palette */}
-        {selection && (
+        {selection && mainRef.current && (
           <div 
-            className="fixed z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
+            className="absolute z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
             style={{ 
-              top: selection.rect.top, 
-              left: selection.rect.left + (selection.rect.width / 2) 
+              top: selection.rect.top + window.scrollY - mainRef.current.offsetTop, 
+              left: selection.rect.left + (selection.rect.width / 2) - mainRef.current.offsetLeft
             }}
           >
-            <GlassCard className="w-[200px] p-2 flex flex-col shadow-2xl border-white/60">
-              <div className="flex flex-col">
+            <GlassCard className="w-[220px] p-2 flex flex-col shadow-2xl border-white/60">
+              <div className="flex flex-col max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-charcoal/10">
                 {(Object.keys(RASA_CONFIGS) as RasaLabel[]).map(label => {
                   const config = RASA_CONFIGS[label]
                   return (
@@ -471,8 +472,6 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
                         style={{ backgroundColor: config.color }}
                       />
                       <span className="text-[15px] text-charcoal">{config.name}</span>
-                      
-                      {/* Custom Tooltip implementation if needed, but 'title' is a simple fallback */}
                     </button>
                   )
                 })}
@@ -489,19 +488,19 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
         )}
 
         {/* Management Palette (for existing highlights) */}
-        {activeGroup && (
+        {activeGroup && mainRef.current && (
           <div 
-            className="fixed z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
+            className="absolute z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
             style={{ 
-              top: activeGroup.rect.top, 
-              left: activeGroup.rect.left + (activeGroup.rect.width / 2) 
+              top: activeGroup.rect.top + window.scrollY - mainRef.current.offsetTop, 
+              left: activeGroup.rect.left + (activeGroup.rect.width / 2) - mainRef.current.offsetLeft
             }}
           >
-            <GlassCard className="w-[200px] p-2 flex flex-col shadow-2xl border-white/60">
+            <GlassCard className="w-[220px] p-2 flex flex-col shadow-2xl border-white/60">
               <div className="px-3 py-2 border-b border-charcoal/5 mb-1">
                 <span className="text-[10px] font-black text-terracotta uppercase tracking-widest">Active Emotions</span>
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-charcoal/10">
                 {activeGroup.anns.map(ann => {
                   const config = RASA_CONFIGS[ann.rasa_label]
                   return (
