@@ -451,7 +451,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           <div 
             className="fixed z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
             style={{ 
-              top: selection.rect.top + window.scrollY, 
+              top: selection.rect.top, 
               left: selection.rect.left + (selection.rect.width / 2) 
             }}
           >
@@ -493,7 +493,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           <div 
             className="fixed z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
             style={{ 
-              top: activeGroup.rect.top + window.scrollY, 
+              top: activeGroup.rect.top, 
               left: activeGroup.rect.left + (activeGroup.rect.width / 2) 
             }}
           >
