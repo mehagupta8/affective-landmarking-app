@@ -22,6 +22,50 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
   const coverage = useMemo(() => stats.getCoverageMetrics(), [stats])
   const contested = useMemo(() => stats.getContestedSegments(), [stats])
 
+  function renderSentenceWithHighlights(fragment: string, anns: Annotation[]) {
+    // Group characters by their unique set of annotations
+    const points = new Set<number>([0, fragment.length])
+    anns.forEach(a => {
+      points.add(a.start_offset)
+      points.add(a.end_offset)
+    })
+    const sortedPoints = Array.from(points).sort((a, b) => a - b)
+    const groups: { text: string, anns: Annotation[] }[] = []
+
+    for (let i = 0; i < sortedPoints.length - 1; i++) {
+      const s = sortedPoints[i]
+      const e = sortedPoints[i + 1]
+      const fragmentText = fragment.substring(s, e)
+      const segmentAnns = anns.filter(a => a.start_offset <= s && a.end_offset >= e)
+      groups.push({ text: fragmentText, anns: segmentAnns })
+    }
+
+    return groups.map((group, i) => {
+      if (group.anns.length === 0) return <span key={i}>{group.text}</span>
+      let element = <>{group.text}</>
+      group.anns.forEach((ann) => {
+        element = (
+          <span 
+            key={ann.id}
+            style={{
+              backgroundColor: RASA_CONFIGS[ann.rasa_label].color,
+              mixBlendMode: 'multiply',
+              boxDecorationBreak: 'clone',
+              WebkitBoxDecorationBreak: 'clone',
+              padding: '0.1em 0',
+              borderRadius: '2px',
+              opacity: 0.8
+            }}
+            className="inline"
+          >
+            {element}
+          </span>
+        )
+      })
+      return <span key={i} className="inline leading-normal">{element}</span>
+    })
+  }
+
   return (
     <div className="space-y-12 animate-in fade-in duration-1000 pb-20">
       {/* 1. Global Overview */}
@@ -108,8 +152,8 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
           </div>
           <div className="flex justify-between text-[8px] font-black text-warm-grey/40 uppercase tracking-[0.2em] px-1">
             <span>Start</span>
-            <span>Position in Text</span>
-            <span>End</span>
+            <span>Middle</span>
+            <span>Finish</span>
           </div>
           <p className="text-xs text-warm-grey leading-relaxed italic">
             Bars indicate where specific emotions &quot;spiked&quot; significantly above their average occurrence.
@@ -153,28 +197,54 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
             <Users className="w-5 h-5 text-terracotta" />
             <h3 className="text-2xl text-charcoal font-normal">Discussion Starters</h3>
           </div>
-          <div className="space-y-4">
-            {contested.map((seg, idx) => (
-              <div key={idx} className="space-y-3 bg-white/20 p-6 rounded-2xl border border-white/40">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-terracotta uppercase tracking-widest">Contested Passage #{idx + 1}</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold text-warm-grey">Diversity:</span>
-                    <span className="text-[10px] font-bold text-charcoal">{Math.round(seg.diversityIndex * 100)}%</span>
+          <div className="space-y-6">
+            {contested.map((seg, idx) => {
+              // Find sentence boundaries
+              let sentenceStart = seg.start
+              while (sentenceStart > 0 && !/[.!?\n]/.test(text[sentenceStart - 1])) {
+                sentenceStart--
+              }
+              let sentenceEnd = seg.end
+              while (sentenceEnd < text.length && !/[.!?\n]/.test(text[sentenceEnd])) {
+                sentenceEnd++
+              }
+              if (sentenceEnd < text.length && /[.!?]/.test(text[sentenceEnd])) {
+                sentenceEnd++
+              }
+
+              const sentenceText = text.substring(sentenceStart, sentenceEnd).trim()
+              
+              const relevantAnns = seg.annotations.map(ann => ({
+                ...ann,
+                start_offset: Math.max(0, ann.start_offset - sentenceStart),
+                end_offset: Math.min(sentenceText.length, ann.end_offset - sentenceStart)
+              })).filter(a => a.end_offset > a.start_offset)
+
+              return (
+                <div key={idx} className="space-y-4 bg-white/20 p-8 rounded-[32px] border border-white/40 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em]">Contested Passage #{idx + 1}</span>
+                    <div className="flex items-center gap-2 bg-charcoal/5 px-3 py-1 rounded-full border border-charcoal/5">
+                      <span className="text-[10px] font-bold text-warm-grey uppercase tracking-widest">Diversity:</span>
+                      <span className="text-[10px] font-black text-charcoal">{Math.round(seg.diversityIndex * 100)}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-lg text-charcoal/90 leading-relaxed font-serif italic selection:bg-terracotta/20">
+                    &quot;{renderSentenceWithHighlights(sentenceText, relevantAnns)}&quot;
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-charcoal/5 mt-4">
+                    {seg.labels.map(l => (
+                      <div key={l.label} className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-full text-[10px] font-bold text-charcoal/60 border border-white/80 shadow-sm">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: RASA_CONFIGS[l.label].color }} />
+                        {RASA_CONFIGS[l.label].name} ({l.count})
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <p className="text-sm text-charcoal/80 italic font-serif leading-relaxed line-clamp-2">
-                  &quot;{text.substring(seg.start, seg.end)}&quot;
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {seg.labels.map(l => (
-                    <span key={l.label} className="text-[8px] font-bold bg-white/60 px-2 py-0.5 rounded-full text-warm-grey border border-white/80">
-                      {RASA_CONFIGS[l.label].name} ({l.count})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+              )
+            })}
             {studentCount <= 1 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
                 <Info className="w-8 h-8 text-warm-grey/20" />

@@ -27,6 +27,7 @@ export interface ContestedSegment {
   end: number
   diversityIndex: number
   labels: { label: RasaLabel, count: number }[]
+  annotations: Annotation[]
 }
 
 export class AffectiveStats {
@@ -201,7 +202,8 @@ export class AffectiveStats {
           start,
           end,
           diversityIndex: diversity,
-          labels: Object.entries(labelCounts).map(([l, c]) => ({ label: l as RasaLabel, count: c }))
+          labels: Object.entries(labelCounts).map(([l, c]) => ({ label: l as RasaLabel, count: c })),
+          annotations: segmentAnns
         })
       }
     }
