@@ -64,9 +64,9 @@ export default function SubmissionSuccessPage({ params }: { params: Promise<{ te
             </PillButton>
           </Link>
           
-          <Link href="/join" className="text-warm-grey hover:text-charcoal transition-colors text-sm font-medium flex items-center justify-center gap-2">
+          <Link href="/student/dashboard" className="text-warm-grey hover:text-charcoal transition-colors text-sm font-medium flex items-center justify-center gap-2">
             <BookOpen className="w-4 h-4" />
-            Return to Class Library
+            Return to Dashboard
           </Link>
         </div>
       </GlassCard>

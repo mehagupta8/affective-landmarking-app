@@ -295,18 +295,33 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
             </div>
             
             {!isLocked && !isSubmitted ? (
-              <PillButton 
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="py-2 px-6 text-[10px] h-10 flex items-center gap-2"
-              >
-                {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                Submit Text
-              </PillButton>
+              <div className="flex gap-2">
+                <PillButton 
+                  onClick={() => router.push('/student/dashboard')}
+                  className="py-2 px-6 text-[10px] h-10 bg-white text-charcoal border border-charcoal/5 shadow-sm"
+                >
+                  Save & Exit
+                </PillButton>
+                <PillButton 
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="py-2 px-6 text-[10px] h-10 flex items-center gap-2"
+                >
+                  {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                  Submit Text
+                </PillButton>
+              </div>
             ) : isSubmitted ? (
-              <div className="flex items-center gap-2 text-terracotta bg-terracotta/5 px-4 py-2 rounded-full border border-terracotta/10">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Submitted</span>
+              <div className="flex items-center gap-4">
+                <Link href="/student/dashboard">
+                  <PillButton className="py-2 px-6 text-[10px] h-10 bg-white text-charcoal border border-charcoal/5 shadow-sm">
+                    Return to Dashboard
+                  </PillButton>
+                </Link>
+                <div className="flex items-center gap-2 text-terracotta bg-terracotta/5 px-4 py-2 rounded-full border border-terracotta/10">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Submitted</span>
+                </div>
               </div>
             ) : null}
           </div>
@@ -372,9 +387,9 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
       {/* Header / Nav */}
       <header className="w-full max-w-4xl flex justify-between items-center px-8 py-8">
-        <Link href="/join" className="group flex items-center gap-2 text-warm-grey hover:text-charcoal transition-colors">
+        <Link href="/student/dashboard" className="group flex items-center gap-2 text-warm-grey hover:text-charcoal transition-colors">
           <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          Exit
+          Dashboard
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-sm text-warm-grey">{student?.name}</span>
