@@ -11,20 +11,24 @@ export function HowToUseContent() {
       description: "Both teachers and students create a 4-digit PIN. This ensures your annotations and dashboard remain private."
     },
     {
-      title: "Read & Annotate",
-      description: "Select a text from the library. As you read, highlight phrases and select one of the eight Rasas (emotions) that match your feeling in that moment."
+      title: "Assign & Read",
+      description: "Teachers assign specific literary pieces to the class library. Students select an assignment to begin their reading journey."
+    },
+    {
+      title: "Annotate with Affect",
+      description: "Use color highlights to annotate the text as you read. Simply select a phrase to reveal the emotional palette and landmark your feelings."
     },
     {
       title: "Layer Emotions",
-      description: "Literature is complex. You can layer multiple emotions on the same line to create blended colors."
+      description: "Literature is complex. You can layer multiple emotions on the same line to create blended colors and represent nuanced reactions."
     },
     {
-      title: "Finalize & Unlock",
-      description: "Once you've annotated the entire text, hit 'Submit.' This unlocks the Class Consolidated Spectrum, where you can see how your journey compares to your peers."
+      title: "View Class Insights",
+      description: "After submitting your landmark, explore the consolidated class spectrum and analytics. Identify emotional spikes and contested passages."
     },
     {
       title: "Writing Activity",
-      description: "After viewing the spectrum, your teacher may assign a writing activity. You will pick one emotion from your landmarking (or use the random selector) to produce a close reading paragraph based on that specific affective lens."
+      description: "Produce a close reading paragraph through the lens of a specific emotion you felt, or let the app challenge you with a random affect."
     }
   ]
 
