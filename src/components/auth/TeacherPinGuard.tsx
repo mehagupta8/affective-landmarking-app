@@ -81,7 +81,7 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
     const { data: sessionData } = await supabase.auth.getSession()
     console.log('Current session before PIN set:', sessionData.session ? 'Session exists' : 'NO SESSION')
 
-    const attemptUpdate = async (isRetry = false): Promise<{ success: boolean; error?: any }> => {
+    const attemptUpdate = async (isRetry = false): Promise<{ success: boolean; error?: string }> => {
       try {
         console.log(`${isRetry ? 'Retrying' : 'Attempting'} PIN update...`)
         const { error: updateError } = await supabase.auth.updateUser({
@@ -99,15 +99,16 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
               console.log('Refresh successful, retrying...')
               return await attemptUpdate(true)
             } else {
-              return { success: false, error: refreshError || new Error('Session expired. Please log in again.') }
+              return { success: false, error: refreshError?.message || 'Session expired. Please log in again.' }
             }
           }
-          return { success: false, error: updateError }
+          return { success: false, error: updateError.message }
         }
         
         return { success: true }
       } catch (err) {
-        return { success: false, error: err }
+        const message = err instanceof Error ? err.message : String(err)
+        return { success: false, error: message }
       }
     }
 
@@ -117,7 +118,7 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
       setHasPin(true)
       setIsVerified(true)
     } else {
-      setError(result.error?.message || 'An unexpected error occurred')
+      setError(result.error || 'An unexpected error occurred')
     }
     
     setSettingPin(false)
