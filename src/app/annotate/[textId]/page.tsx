@@ -293,7 +293,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
               <span className="text-2xl font-light text-charcoal">{progress}% Completed</span>
             </div>
             
-            {progress === 100 && !isSubmitted ? (
+            {!isLocked && !isSubmitted ? (
               <PillButton 
                 onClick={handleSubmit}
                 disabled={submitting}
@@ -307,11 +307,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
                 <CheckCircle2 className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Submitted</span>
               </div>
-            ) : (
-              <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest mb-1">
-                Keep Exploring
-              </span>
-            )}
+            ) : null}
           </div>
           <div className="h-2 w-full bg-charcoal/5 rounded-full overflow-hidden mb-6">
             <div 
