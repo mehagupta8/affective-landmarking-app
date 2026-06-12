@@ -2,43 +2,63 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { usePathname } from 'next/navigation'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Orb } from '@/components/ui/Orb'
 import { Loader2, Lock, ShieldCheck } from 'lucide-react'
 
 export function TeacherPinGuard({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
   const [loading, setLoading] = useState(true)
+  const [authenticated, setAuthenticated] = useState(false)
   const [hasPin, setHasPin] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [settingPin, setSettingPin] = useState(false)
 
+  // Public teacher routes that don't need PIN protection
+  // Include exact matches and sub-routes for login and signup
+  const isPublicRoute = pathname === '/teacher/login' || 
+                        pathname?.startsWith('/teacher/login/') ||
+                        pathname === '/teacher/signup' ||
+                        pathname?.startsWith('/teacher/signup/')
+
   useEffect(() => {
+    console.log('TeacherPinGuard mounted on:', pathname)
+    
     // Initial check
-    const checkPin = async () => {
-      const { data } = await supabase.auth.getUser()
+    const checkUser = async () => {
+      const { data, error } = await supabase.auth.getUser()
       const user = data?.user
       
+      console.log('Initial user check:', { user: user?.id, error: error?.message })
+      
       if (user) {
+        setAuthenticated(true)
         const userPin = user.user_metadata?.pin
         setHasPin(!!userPin)
       } else {
+        setAuthenticated(false)
         setHasPin(false)
       }
       setLoading(false)
     }
     
-    checkPin()
+    checkUser()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user
+      console.log('Auth state change:', { event, user: user?.id })
+      
       if (user) {
+        setAuthenticated(true)
         const userPin = user.user_metadata?.pin
         setHasPin(!!userPin)
       } else {
+        setAuthenticated(false)
         setHasPin(false)
       }
       setLoading(false)
@@ -47,7 +67,7 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [pathname])
 
   const handleSetPin = async () => {
     if (!/^\d{4}$/.test(pin)) {
@@ -55,15 +75,51 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
       return
     }
     setSettingPin(true)
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { pin: pin }
-    })
-    if (updateError) {
-      setError(updateError.message)
-    } else {
+    setError(null)
+    
+    // Step 3: Log session to confirm it exists in the browser
+    const { data: sessionData } = await supabase.auth.getSession()
+    console.log('Current session before PIN set:', sessionData.session ? 'Session exists' : 'NO SESSION')
+
+    const attemptUpdate = async (isRetry = false): Promise<{ success: boolean; error?: any }> => {
+      try {
+        console.log(`${isRetry ? 'Retrying' : 'Attempting'} PIN update...`)
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { pin: pin }
+        })
+        
+        if (updateError) {
+          console.error('PIN update error:', updateError)
+          // Step 5: Check for AuthSessionMissingError (standard message is "Auth session missing!")
+          if (updateError.message.includes('Auth session missing') && !isRetry) {
+            console.log('Session missing, attempting refresh and retry...')
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+            
+            if (!refreshError && refreshData.session) {
+              console.log('Refresh successful, retrying...')
+              return await attemptUpdate(true)
+            } else {
+              return { success: false, error: refreshError || new Error('Session expired. Please log in again.') }
+            }
+          }
+          return { success: false, error: updateError }
+        }
+        
+        return { success: true }
+      } catch (err) {
+        return { success: false, error: err }
+      }
+    }
+
+    const result = await attemptUpdate()
+    
+    if (result.success) {
       setHasPin(true)
       setIsVerified(true)
+    } else {
+      setError(result.error?.message || 'An unexpected error occurred')
     }
+    
     setSettingPin(false)
   }
 
@@ -76,6 +132,11 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
       setError('Incorrect PIN')
       setPin('')
     }
+  }
+
+  // If it's a public route or we're not authenticated yet, don't show the guard
+  if (isPublicRoute || (!loading && !authenticated)) {
+    return <>{children}</>
   }
 
   if (loading) {
@@ -136,3 +197,4 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
 
   return <>{children}</>
 }
+

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error && data?.user) {
       const isLocalEnv = process.env.NODE_ENV === 'development'
-      let redirectUrl = next
+      const redirectUrl = next
 
       // If it's a teacher (not student flow) and they don't have a PIN,
       // we can optionally force them to the dashboard where the guard will catch them,
