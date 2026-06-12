@@ -31,6 +31,7 @@ export interface Class {
   teacher_id: string;
   name: string;
   class_code: string;
+  due_date: string | null;
   created_at: string;
 }
 
