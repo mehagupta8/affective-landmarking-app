@@ -4,9 +4,11 @@ import React, { useState, useEffect, useCallback, use } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, Loader2, Users } from 'lucide-react'
+import { ChevronLeft, Loader2, Users, PieChart, Layout } from 'lucide-react'
 import { Text, Annotation, Student } from '@/types/database'
 import SpectrumVisualizer from '@/components/viz/SpectrumVisualizer'
+import StatsDashboard from '@/components/viz/StatsDashboard'
+import { cn } from '@/lib/utils'
 
 export default function StudentSpectrumPage({ params }: { params: Promise<{ textId: string }> }) {
   const { textId } = use(params)
@@ -14,7 +16,7 @@ export default function StudentSpectrumPage({ params }: { params: Promise<{ text
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [view, setView] = useState<'spectrum' | 'stats'>('spectrum')
 
   const fetchData = useCallback(async () => {
     try {
@@ -60,28 +62,63 @@ export default function StudentSpectrumPage({ params }: { params: Promise<{ text
   return (
     <div className="min-h-screen atmospheric-bg py-12 px-8">
       <div className="max-w-6xl mx-auto space-y-12">
-        <header className="space-y-6">
-          <Link 
-            href="/join" 
-            className="group flex items-center gap-2 text-warm-grey hover:text-charcoal transition-colors text-sm"
-          >
-            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to Library
-          </Link>
-          <div className="space-y-2">
-            <h1 className="text-5xl font-normal text-charcoal">{text.title}</h1>
-            <div className="flex items-center gap-2 text-warm-grey/60 font-medium uppercase tracking-[0.2em] text-[10px]">
-              <Users className="w-3 h-3" />
-              Class Consolidated Spectrum
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="space-y-6">
+            <Link 
+              href="/student/dashboard" 
+              className="group flex items-center gap-2 text-warm-grey hover:text-charcoal transition-colors text-sm"
+            >
+              <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Back to Dashboard
+            </Link>
+            <div className="space-y-2">
+              <h1 className="text-5xl font-normal text-charcoal">{text.title}</h1>
+              <div className="flex items-center gap-2 text-warm-grey/60 font-medium uppercase tracking-[0.2em] text-[10px]">
+                <Users className="w-3 h-3" />
+                Class Consolidated Spectrum
+              </div>
             </div>
+          </div>
+
+          <div className="flex bg-white/30 p-1.5 rounded-full border border-white/40 shadow-sm backdrop-blur-md">
+            <button
+              onClick={() => setView('spectrum')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-2.5 text-sm font-bold uppercase tracking-widest rounded-full transition-all",
+                view === 'spectrum' ? "bg-white text-charcoal shadow-md" : "text-warm-grey/60 hover:text-charcoal"
+              )}
+            >
+              <Layout className="w-4 h-4" />
+              Visual
+            </button>
+            <button
+              onClick={() => setView('stats')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-2.5 text-sm font-bold uppercase tracking-widest rounded-full transition-all",
+                view === 'stats' ? "bg-white text-charcoal shadow-md" : "text-warm-grey/60 hover:text-charcoal"
+              )}
+            >
+              <PieChart className="w-4 h-4" />
+              Insights
+            </button>
           </div>
         </header>
 
-        <SpectrumVisualizer 
-          text={text.content}
-          annotations={annotations}
-          students={students}
-        />
+        <div className="animate-in fade-in duration-700">
+          {view === 'spectrum' ? (
+            <SpectrumVisualizer 
+              text={text.content}
+              annotations={annotations}
+              students={students}
+            />
+          ) : (
+            <StatsDashboard 
+              text={text.content}
+              annotations={annotations}
+              studentCount={students.length}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

@@ -4,10 +4,12 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, BarChart2, Loader2, Info } from 'lucide-react'
+import { ChevronLeft, BarChart2, Loader2, Info, PieChart, Layout } from 'lucide-react'
 import { Class, Text, Student, Annotation } from '@/types/database'
 import SpectrumVisualizer from '@/components/viz/SpectrumVisualizer'
+import StatsDashboard from '@/components/viz/StatsDashboard'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 
 export default function SpectrumPage({ params }: { params: Promise<{ id: string, textId: string }> }) {
   const { id: classId, textId } = use(params)
@@ -16,6 +18,7 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
   const [students, setStudents] = useState<Student[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'spectrum' | 'stats'>('spectrum')
 
   const router = useRouter()
 
@@ -80,14 +83,32 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
             Back to Class
           </Link>
           <h1 className="text-5xl font-normal text-charcoal">
-            Spectrum: {text.title}
+            {view === 'spectrum' ? 'Spectrum' : 'Analytics'}: {text.title}
           </h1>
           <p className="text-warm-grey text-xl font-light">{cls.name}</p>
         </div>
 
-        <div className="flex items-center gap-4 glass bg-white/40 px-6 py-3 rounded-full border-white/60 shadow-sm">
-          <BarChart2 className="w-5 h-5 text-terracotta" />
-          <span className="text-sm font-bold text-charcoal uppercase tracking-widest">{annotations.length} Annotations</span>
+        <div className="flex bg-white/30 p-1.5 rounded-full border border-white/40 shadow-sm backdrop-blur-md">
+          <button
+            onClick={() => setView('spectrum')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 text-sm font-bold uppercase tracking-widest rounded-full transition-all",
+              view === 'spectrum' ? "bg-white text-charcoal shadow-md" : "text-warm-grey/60 hover:text-charcoal"
+            )}
+          >
+            <Layout className="w-4 h-4" />
+            Visual
+          </button>
+          <button
+            onClick={() => setView('stats')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 text-sm font-bold uppercase tracking-widest rounded-full transition-all",
+              view === 'stats' ? "bg-white text-charcoal shadow-md" : "text-warm-grey/60 hover:text-charcoal"
+            )}
+          >
+            <PieChart className="w-4 h-4" />
+            Insights
+          </button>
         </div>
       </header>
 
@@ -106,12 +127,22 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
           </div>
         </GlassCard>
       ) : (
-        <SpectrumVisualizer 
-          text={text.content}
-          annotations={annotations}
-          students={students}
-          title={text.title}
-        />
+        <div className="animate-in fade-in duration-700">
+          {view === 'spectrum' ? (
+            <SpectrumVisualizer 
+              text={text.content}
+              annotations={annotations}
+              students={students}
+              title={text.title}
+            />
+          ) : (
+            <StatsDashboard 
+              text={text.content}
+              annotations={annotations}
+              studentCount={students.length}
+            />
+          )}
+        </div>
       )}
     </div>
   )
