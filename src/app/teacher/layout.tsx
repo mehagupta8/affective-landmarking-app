@@ -33,8 +33,8 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
       <aside className="w-80 glass m-6 rounded-[28px] flex flex-col p-8 space-y-10 h-[calc(100vh-3rem)] sticky top-6">
         <div className="flex items-center space-x-4 px-2">
           <Orb size="md" className="shrink-0" />
-          <span className="text-xl font-bold tracking-tight text-charcoal leading-none">
-            Affective<br />Landmarking
+          <span className="text-xl font-bold tracking-tight text-charcoal leading-none whitespace-nowrap">
+            Affective Landmarking
           </span>
         </div>
 

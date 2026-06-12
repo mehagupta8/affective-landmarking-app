@@ -3,13 +3,13 @@
 @theme inline {
   --color-charcoal: #384959;
   --color-warm-grey: #6A89A7;
-  --color-terracotta: #88BDF2;
+  --color-accent-blue: #88BDF2;
   --color-sky-blue: #BDDDFC;
   
-  /* Rasa Colors - Kept as is per previous requirement for bold primary colors, 
-     but maybe the user wants these changed too? 
-     The prompt only mentioned the UI color palette. 
-     I'll stick to the UI palette first. */
+  /* Primary Theme Color (Replaces Orange) */
+  --color-terracotta: #6A89A7; 
+  
+  /* Rasa Colors - Kept as is per previous requirement for bold primary colors */
   --color-rasa-fear: #191910;
   --color-rasa-joy: #FFC0CB;
   --color-rasa-anger: #E14747;
@@ -26,12 +26,15 @@
 }
 
 :root {
-  --background-gradient: radial-gradient(at 0% 0%, #BDDDFC 0, transparent 50%), 
-                         radial-gradient(at 50% 0%, #88BDF2 0, transparent 50%), 
-                         radial-gradient(at 100% 0%, #384959 0, transparent 50%), 
-                         radial-gradient(at 0% 50%, #6A89A7 0, transparent 50%), 
-                         radial-gradient(at 100% 50%, #BDDDFC 0, transparent 50%),
-                         radial-gradient(at 50% 100%, #88BDF2 0, transparent 50%);
+  /* Rainbow Atmospheric Ombre */
+  --background-gradient: radial-gradient(at 0% 0%, #FFD1D1 0, transparent 40%),    /* Soft Red */
+                         radial-gradient(at 50% 0%, #FFF8D1 0, transparent 40%),   /* Soft Yellow */
+                         radial-gradient(at 100% 0%, #D1FFE1 0, transparent 40%),  /* Soft Green */
+                         radial-gradient(at 0% 50%, #D1F3FF 0, transparent 40%),   /* Soft Blue */
+                         radial-gradient(at 50% 50%, #6A89A7 0, transparent 40%),  /* User Request (#6A89A7) */
+                         radial-gradient(at 100% 50%, #D1D8FF 0, transparent 40%), /* Soft Indigo */
+                         radial-gradient(at 50% 100%, #E9D1FF 0, transparent 40%), /* Soft Violet */
+                         radial-gradient(at 100% 100%, #BDDDFC 0, transparent 40%);/* Sky Blue Corner */
   --reading-bg: #F0F4F8;
   --reading-surface: #FDFBF7;
 }
@@ -46,19 +49,19 @@
   h1 {
     @apply font-normal tracking-[0.02em];
     line-height: 1.2;
-    font-size: 4rem; /* Increased size */
+    font-size: 4rem;
   }
 
   h2 {
     @apply font-normal tracking-[0.02em];
     line-height: 1.2;
-    font-size: 2.5rem; /* Increased size */
+    font-size: 2.5rem;
   }
 
   h3 {
     @apply font-normal tracking-[0.02em];
     line-height: 1.2;
-    font-size: 2rem; /* Increased size */
+    font-size: 2rem;
   }
 
   button {
@@ -77,11 +80,12 @@
     z-index: -1;
     background: var(--background-gradient);
     background-size: cover;
-    opacity: 0.8;
+    background-color: #FDFBF7; /* Base tint */
+    opacity: 0.6; /* Softer opacity for the rainbow effect */
   }
 
   .glass {
-    @apply bg-white/60 backdrop-blur-[20px] border border-white/30 shadow-[0_8px_32px_0_rgba(56,73,89,0.07)];
+    @apply bg-white/60 backdrop-blur-[20px] border border-white/30 shadow-[0_8px_32px_0_rgba(56,73,89,0.05)];
   }
 
   .glass-edge {
