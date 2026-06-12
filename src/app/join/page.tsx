@@ -3,8 +3,8 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Loader2, BookOpen, Lock, ChevronLeft } from 'lucide-react'
-import { Class, Text, Annotation } from '@/types/database'
+import { ArrowRight, Loader2, Lock, ChevronLeft } from 'lucide-react'
+import { Class } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
@@ -13,7 +13,7 @@ import { Orb } from '@/components/ui/Orb'
 import { InfoTabs } from '@/components/info/InfoTabs'
 import Link from 'next/link'
 
-type JoinStep = 'code' | 'identity' | 'select-text'
+type JoinStep = 'code' | 'identity'
 
 export default function JoinPage() {
   const [step, setStep] = useState<JoinStep>('code')
@@ -29,12 +29,6 @@ export default function JoinPage() {
   const [studentName, setStudentName] = useState('')
   const [pin, setPin] = useState('')
   const [loginAttempts, setLoginAttempts] = useState(0)
-  
-  // State for step 'select-text'
-  const [texts, setTexts] = useState<Text[]>([])
-  const [annotations, setAnnotations] = useState<Annotation[]>([])
-  const [submittedTexts, setSubmittedTexts] = useState<string[]>([])
-  const [studentId, setStudentId] = useState<string | null>(null)
   const [supabaseUser, setSupabaseUser] = useState<any>(null)
 
   const router = useRouter()
@@ -50,14 +44,23 @@ export default function JoinPage() {
     }
     void checkUser()
 
-    // 2. Handle redirect back from Google Auth
+    // 2. Check if already has a student session
+    const checkSession = async () => {
+      const res = await fetch('/api/student/me')
+      if (res.ok) {
+        router.push('/student/dashboard')
+      }
+    }
+    void checkSession()
+
+    // 3. Handle redirect back from Google Auth
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     if (code && step === 'code') {
       setClassCode(code)
       void handleVerifyCodeAuto(code)
     }
-  }, [])
+  }, [router, step])
 
   const handleVerifyCodeAuto = async (code: string) => {
     setLoading(true)
@@ -104,6 +107,8 @@ export default function JoinPage() {
     setLoading(true)
     setError(null)
 
+    if (!foundClass) return
+
     try {
       const action = authAction
 
@@ -137,58 +142,12 @@ export default function JoinPage() {
         return
       }
 
-      setStudentId(result.studentId)
-      
-      const { data: classTexts } = await supabase
-        .from('texts')
-        .select('*')
-        .eq('class_id', foundClass.id)
-        .order('created_at', { ascending: false })
-
-      const { data: studentAnns } = await supabase
-        .from('annotations')
-        .select('*')
-        .eq('student_id', result.studentId)
-
-      const { data: currentStudent } = await supabase
-        .from('students')
-        .select('submitted_texts')
-        .eq('id', result.studentId)
-        .single()
-
-      setTexts(classTexts || [])
-      setAnnotations(studentAnns || [])
-      setSubmittedTexts(currentStudent?.submitted_texts || [])
-      setStep('select-text')
+      router.push('/student/dashboard')
     } catch (err) {
       setError('An unexpected error occurred.')
     } finally {
       setLoading(false)
     }
-  }
-
-  const calculateProgress = (text: Text) => {
-    if (!text || text.content.length === 0) return 0
-    const textAnns = annotations.filter(a => a.text_id === text.id)
-    const intervals = textAnns
-      .map(a => [a.start_offset, a.end_offset])
-      .sort((a, b) => a[0] - b[0])
-
-    if (intervals.length === 0) return 0
-
-    const merged = [[...intervals[0]]]
-    for (let i = 1; i < intervals.length; i++) {
-      const prev = merged[merged.length - 1]
-      const curr = intervals[i]
-      if (curr[0] <= prev[1]) {
-        prev[1] = Math.max(prev[1], curr[1])
-      } else {
-        merged.push([...curr])
-      }
-    }
-
-    const totalCovered = merged.reduce((acc, [start, end]) => acc + (end - start), 0)
-    return Math.min(100, Math.round((totalCovered / text.content.length) * 100))
   }
 
   return (
@@ -341,77 +300,6 @@ export default function JoinPage() {
                           }}
                         />
                       </form>
-                    </div>
-                  )}
-
-                  {step === 'select-text' && (
-                    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                      <div className="text-center">
-                        <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">Identify Confirmed</span>
-                        <h2 className="text-2xl text-charcoal mt-1">Pick a text to begin</h2>
-                      </div>
-
-                      <div className="space-y-3">
-                        {texts.length === 0 ? (
-                          <p className="text-center text-warm-grey py-10 opacity-60 font-light">No texts uploaded yet.</p>
-                        ) : (
-                          texts.map((text) => {
-                            const progress = calculateProgress(text)
-                            const isSubmitted = submittedTexts.includes(text.id)
-
-                            return (
-                              <div key={text.id} className="space-y-2">
-                                <button
-                                  onClick={() => router.push(`/annotate/${text.id}?student=${studentId}`)}
-                                  className="w-full flex flex-col p-5 bg-white/20 hover:bg-white/50 border border-white/40 rounded-3xl transition-all group shadow-sm text-left relative overflow-hidden"
-                                >
-                                  {isSubmitted && (
-                                    <div className="absolute top-0 right-0 bg-terracotta text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl shadow-sm">
-                                      Submitted
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-5 mb-4">
-                                    <div className="w-12 h-12 glass bg-white/80 rounded-2xl flex items-center justify-center text-terracotta group-hover:scale-110 transition-transform">
-                                      <BookOpen className="w-6 h-6" />
-                                    </div>
-                                    <div className="flex-1">
-                                      <span className="text-lg text-charcoal block line-clamp-1">{text.title}</span>
-                                      <div className="flex flex-wrap gap-2 items-center mt-1">
-                                        <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest">{progress}% Completed</span>
-                                        {text.due_date && (
-                                          <span className={cn(
-                                            "text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border",
-                                            new Date(text.due_date) < new Date() 
-                                              ? "bg-red-50 text-red-500 border-red-100" 
-                                              : "bg-terracotta/5 text-terracotta/40 border-terracotta/10"
-                                          )}>
-                                            {new Date(text.due_date) < new Date() ? 'CLOSED' : `DUE: ${new Date(text.due_date).toLocaleDateString()}`}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="h-1.5 w-full bg-charcoal/5 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-terracotta transition-all duration-1000 ease-out"
-                                      style={{ width: `${progress}%`, opacity: 0.3 + (progress / 100) * 0.7 }}
-                                    />
-                                  </div>
-                                </button>
-                                
-                                {isSubmitted && (
-                                  <Link 
-                                    href={`/annotate/${text.id}/spectrum?student=${studentId}`}
-                                    className="block w-full text-center py-3 bg-charcoal/5 hover:bg-charcoal/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-charcoal/60 transition-all border border-charcoal/5"
-                                  >
-                                    View Class Spectrum
-                                  </Link>
-                                )}
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>

@@ -20,10 +20,10 @@ export default function LandingPage() {
       <GlassCard className="flex flex-col items-center p-10 hover:-translate-y-1 transition-all duration-500">
         <h2 className="text-2xl text-charcoal mb-4">I&apos;m a Student</h2>
         <p className="text-warm-grey mb-10 text-base leading-relaxed h-12">
-          Join a class and start annotating literature.
+          Join a class, manage assignments, and track your progress.
         </p>
-        <Link href="/join" className="w-full">
-          <PillButton className="w-full py-4">Join Class</PillButton>
+        <Link href="/student/dashboard" className="w-full">
+          <PillButton className="w-full py-4">Student Portal</PillButton>
         </Link>
       </GlassCard>
     </div>
