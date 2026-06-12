@@ -31,9 +31,8 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake can make it very difficult to
   // debug issues with sessions being lost.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data } = await supabase.auth.getUser()
+  const user = data?.user
 
   if (
     !user &&

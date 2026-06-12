@@ -26,19 +26,34 @@ export async function GET(request: Request) {
         },
       }
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error && data?.user) {
       const isLocalEnv = process.env.NODE_ENV === 'development'
+      let redirectUrl = next
+
+      // If it's a teacher (not student flow) and they don't have a PIN,
+      // we can optionally force them to the dashboard where the guard will catch them,
+      // or we can be explicit. The user requested a setup flow.
+      
+      const isTeacherFlow = next.startsWith('/teacher')
+      const hasPin = data.user.user_metadata?.pin
+
+      if (isTeacherFlow && !hasPin) {
+        // We could redirect to a specific setup page if we wanted, 
+        // but the Dashboard is already guarded by TeacherPinGuard.
+        // Let's keep it simple or redirect to dashboard.
+      }
+
       if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`)
+        return NextResponse.redirect(`${origin}${redirectUrl}`)
       } 
       
       const forwardedHost = request.headers.get('x-forwarded-host')
       if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+        return NextResponse.redirect(`https://${forwardedHost}${redirectUrl}`)
       }
       
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${origin}${redirectUrl}`)
     }
   }
 

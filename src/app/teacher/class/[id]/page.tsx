@@ -49,10 +49,11 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
 
   const fetchClassData = useCallback(async () => {
     try {
-      let { data: { user } } = await supabase.auth.getUser()
+      const { data: userData } = await supabase.auth.getUser()
+      let user = userData?.user
       if (!user) {
-        const { data: { session } } = await supabase.auth.getSession()
-        user = session?.user || null
+        const { data: sessionData } = await supabase.auth.getSession()
+        user = sessionData?.session?.user || null
       }
       if (!user) {
         router.push('/teacher/login')

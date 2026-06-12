@@ -16,24 +16,37 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
   const [settingPin, setSettingPin] = useState(false)
 
   useEffect(() => {
+    // Initial check
     const checkPin = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.auth.getUser()
+      const user = data?.user
+      
       if (user) {
         const userPin = user.user_metadata?.pin
-        if (userPin) {
-          setHasPin(true)
-        } else {
-          setHasPin(false)
-        }
+        setHasPin(!!userPin)
       } else {
-        // If no user, we shouldn't be here, but let's allow it to fall through 
-        // and let the layout handle redirection, or just stop loading.
-        setLoading(false)
-        return
+        setHasPin(false)
       }
       setLoading(false)
     }
+    
     checkPin()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user
+      if (user) {
+        const userPin = user.user_metadata?.pin
+        setHasPin(!!userPin)
+      } else {
+        setHasPin(false)
+      }
+      setLoading(false)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const handleSetPin = async () => {
@@ -55,7 +68,8 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
   }
 
   const handleVerifyPin = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data } = await supabase.auth.getUser()
+    const user = data?.user
     if (user?.user_metadata?.pin === pin) {
       setIsVerified(true)
     } else {

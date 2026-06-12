@@ -28,10 +28,11 @@ export default function Dashboard() {
 
   const fetchClasses = useCallback(async () => {
     try {
-      let { data: { user } } = await supabase.auth.getUser()
+      const { data: userData } = await supabase.auth.getUser()
+      let user = userData?.user
       if (!user) {
-        const { data: { session } } = await supabase.auth.getSession()
-        user = session?.user || null
+        const { data: sessionData } = await supabase.auth.getSession()
+        user = sessionData?.session?.user || null
       }
       if (!user) {
         router.push('/teacher/login')
@@ -56,7 +57,8 @@ export default function Dashboard() {
   const handleCreateClass = async (e: FormEvent) => {
     e.preventDefault()
     setCreating(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: userData } = await supabase.auth.getUser()
+    const user = userData?.user
     if (!user) return
     const classCode = generateClassCode()
     const { data, error } = await supabase
