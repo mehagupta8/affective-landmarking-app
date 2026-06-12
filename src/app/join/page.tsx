@@ -376,7 +376,19 @@ export default function JoinPage() {
                                     </div>
                                     <div className="flex-1">
                                       <span className="text-lg text-charcoal block line-clamp-1">{text.title}</span>
-                                      <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest">{progress}% Completed</span>
+                                      <div className="flex flex-wrap gap-2 items-center mt-1">
+                                        <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest">{progress}% Completed</span>
+                                        {text.due_date && (
+                                          <span className={cn(
+                                            "text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border",
+                                            new Date(text.due_date) < new Date() 
+                                              ? "bg-red-50 text-red-500 border-red-100" 
+                                              : "bg-terracotta/5 text-terracotta/40 border-terracotta/10"
+                                          )}>
+                                            {new Date(text.due_date) < new Date() ? 'CLOSED' : `DUE: ${new Date(text.due_date).toLocaleDateString()}`}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="h-1.5 w-full bg-charcoal/5 rounded-full overflow-hidden">

@@ -33,6 +33,16 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  const isPastDeadline = useMemo(() => {
+    if (!text?.due_date) return false
+    return new Date(text.due_date) < new Date()
+  }, [text])
+
+  const isLocked = isSubmitted || isPastDeadline
+
+  // Management State
+  const [activeGroup, setActiveGroup] = useState<{ anns: Annotation[], rect: DOMRect } | null>(null)
+
   // Selection State
   const [selection, setSelection] = useState<{ start: number, end: number, rect: DOMRect } | null>(null)
   const textRef = useRef<HTMLDivElement>(null)
@@ -110,6 +120,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   }, [fetchInitialData])
 
   const handleMouseUp = () => {
+    if (isLocked) return
     const sel = window.getSelection()
     if (!sel || sel.isCollapsed || !textRef.current) {
       setSelection(null)
@@ -136,7 +147,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   }
 
   const createAnnotation = async (label: RasaLabel) => {
-    if (!selection || !student || !textId) return
+    if (!selection || !student || !textId || isLocked) return
     
     setSaving(true)
     const { data, error } = await supabase
@@ -159,8 +170,21 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
     setSaving(false)
   }
 
+  const deleteAnnotation = async (id: string) => {
+    if (isLocked) return
+    const { error } = await supabase.from('annotations').delete().eq('id', id)
+    if (!error) {
+      setAnnotations(annotations.filter(a => a.id !== id))
+      if (activeGroup) {
+        const remaining = activeGroup.anns.filter(a => a.id !== id)
+        if (remaining.length === 0) setActiveGroup(null)
+        else setActiveGroup({ ...activeGroup, anns: remaining })
+      }
+    }
+  }
+
   const handleSubmit = async () => {
-    if (!student || !textId) return
+    if (!student || !textId || isLocked) return
     setSubmitting(true)
     
     const { data: current } = await supabase
@@ -237,7 +261,18 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
         )
       })
 
-      return <span key={i} className="inline leading-normal">{element}</span>
+      return (
+        <span 
+          key={i} 
+          className="inline leading-normal cursor-pointer hover:brightness-95 transition-all"
+          onClick={(e) => {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            setActiveGroup({ anns: group.anns, rect })
+          }}
+        >
+          {element}
+        </span>
+      )
     })
   }
 
@@ -249,8 +284,8 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
   return (
     <div className="min-h-screen atmospheric-bg flex flex-col items-center py-12 px-6 relative">
-      {/* Progress Bar (Fixed Bottom) */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-6 animate-in slide-in-from-bottom-8 duration-1000">
+      {/* Progress Bar (Fixed Bottom Left) */}
+      <div className="fixed bottom-8 left-8 z-50 w-full max-w-sm animate-in slide-in-from-left-8 duration-1000">
         <GlassCard className="p-6 shadow-2xl border-white/60 backdrop-blur-2xl">
           <div className="flex justify-between items-end mb-3">
             <div className="flex flex-col">
@@ -351,17 +386,68 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       </header>
 
       {/* Main Reading Surface */}
-      <main className="w-full max-w-[640px] bg-[#FDFBF7] min-h-[80vh] px-16 py-24 mb-32 shadow-[0_4px_40px_rgba(0,0,0,0.02)] rounded-sm relative">
-        <h1 className="text-5xl font-normal text-charcoal mb-16 leading-tight">
-          {text?.title}
-        </h1>
-        
-        <div 
-          ref={textRef}
-          onMouseUp={handleMouseUp}
-          className="text-xl leading-[1.8] text-charcoal/90 whitespace-pre-wrap selection:bg-terracotta/20 cursor-text font-light"
-        >
-          {renderTextWithHighlights()}
+      <main className="w-full max-w-[720px] mb-32 relative">
+        {isPastDeadline && !isSubmitted && (
+          <div className="mb-8 p-6 bg-red-50 border border-red-100 rounded-3xl flex items-center gap-4 text-red-600 animate-in slide-in-from-top-4 duration-700">
+            <AlertTriangle className="w-6 h-6 shrink-0" />
+            <div>
+              <p className="font-bold uppercase tracking-widest text-[10px] mb-1">Assignment Closed</p>
+              <p className="text-sm font-light leading-relaxed">The deadline for this text has passed. Your annotations are now in read-only mode.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-[#FDFBF7] px-16 py-24 shadow-[0_4px_40px_rgba(0,0,0,0.02)] rounded-sm relative">
+          <header className="mb-16 space-y-8">
+            <div className="space-y-2">
+              <h1 className="text-5xl font-normal text-charcoal leading-tight">
+                {text?.title}
+              </h1>
+              {text?.author && (
+                <p className="text-2xl text-warm-grey font-light">by {text.author}</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-6 items-center border-y border-charcoal/5 py-6">
+              {text?.source && (
+                <div className="flex flex-col gap-1 border-r border-charcoal/5 pr-6">
+                  <span className="text-[8px] font-black text-warm-grey/40 uppercase tracking-[0.2em]">Source</span>
+                  <span className="text-xs text-charcoal/60 italic font-serif">{text.source}</span>
+                </div>
+              )}
+              {text?.due_date && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-[8px] font-black text-warm-grey/40 uppercase tracking-[0.2em]">Deadline</span>
+                  <span className={cn(
+                    "text-xs font-bold",
+                    isPastDeadline ? "text-red-500" : "text-terracotta"
+                  )}>
+                    {new Date(text.due_date).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {text?.instructions && (
+              <div className="bg-charcoal/[0.02] p-8 rounded-2xl border border-charcoal/5">
+                <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em] block mb-3">Teacher Instructions</span>
+                <p className="text-charcoal/70 leading-relaxed font-light whitespace-pre-wrap">
+                  {text.instructions}
+                </p>
+              </div>
+            )}
+          </header>
+          
+          <div 
+            ref={textRef}
+            onMouseUp={handleMouseUp}
+            className={cn(
+              "text-xl leading-[1.8] text-charcoal/90 whitespace-pre-wrap selection:bg-terracotta/20 font-light",
+              isLocked ? "cursor-default" : "cursor-text"
+            )}
+          >
+            {renderTextWithHighlights()}
+          </div>
         </div>
 
         {/* Floating Palette */}
@@ -401,6 +487,55 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
                 className="flex items-center justify-center py-2 text-warm-grey hover:text-charcoal transition-colors"
               >
                 <X className="w-4 h-4" />
+              </button>
+            </GlassCard>
+          </div>
+        )}
+
+        {/* Management Palette (for existing highlights) */}
+        {activeGroup && (
+          <div 
+            className="fixed z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
+            style={{ 
+              top: activeGroup.rect.top + window.scrollY, 
+              left: activeGroup.rect.left + (activeGroup.rect.width / 2) 
+            }}
+          >
+            <GlassCard className="w-[200px] p-2 flex flex-col shadow-2xl border-white/60">
+              <div className="px-3 py-2 border-b border-charcoal/5 mb-1">
+                <span className="text-[10px] font-black text-terracotta uppercase tracking-widest">Active Emotions</span>
+              </div>
+              <div className="flex flex-col">
+                {activeGroup.anns.map(ann => {
+                  const config = RASA_CONFIGS[ann.rasa_label]
+                  return (
+                    <div
+                      key={ann.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-white/60 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                          style={{ backgroundColor: config.color }}
+                        />
+                        <span className="text-sm text-charcoal">{config.name}</span>
+                      </div>
+                      <button 
+                        onClick={() => deleteAnnotation(ann.id)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="h-[1px] bg-charcoal/5 my-2" />
+              <button 
+                onClick={() => setActiveGroup(null)}
+                className="flex items-center justify-center py-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey hover:text-charcoal transition-colors"
+              >
+                Close
               </button>
             </GlassCard>
           </div>

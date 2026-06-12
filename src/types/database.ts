@@ -38,8 +38,12 @@ export interface Text {
   id: string;
   class_id: string;
   title: string;
+  author: string | null;
+  source: string | null;
   content: string;
+  instructions: string | null;
   trigger_warning: string | null;
+  due_date: string | null;
   created_at: string;
 }
 

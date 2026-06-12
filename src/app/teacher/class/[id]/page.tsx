@@ -34,7 +34,15 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   // New Text Form State
   const [isAddingText, setIsAddingText] = useState(false)
   const [editingText, setEditingText] = useState<Text | null>(null)
-  const [newText, setNewText] = useState({ title: '', content: '', trigger_warning: '' })
+  const [newText, setNewText] = useState({ 
+    title: '', 
+    author: '',
+    source: '',
+    content: '', 
+    instructions: '',
+    trigger_warning: '',
+    due_date: ''
+  })
   const [savingText, setSavingText] = useState(false)
 
   const router = useRouter()
@@ -100,30 +108,36 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
     e.preventDefault()
     setSavingText(true)
     
+    const textData = { 
+      title: newText.title, 
+      author: newText.author || null,
+      source: newText.source || null,
+      content: newText.content, 
+      instructions: newText.instructions || null,
+      trigger_warning: newText.trigger_warning || null,
+      due_date: newText.due_date ? new Date(newText.due_date).toISOString() : null
+    }
+
     if (editingText) {
       const { data, error } = await supabase
         .from('texts')
-        .update({ 
-          title: newText.title, 
-          content: newText.content, 
-          trigger_warning: newText.trigger_warning || null 
-        })
+        .update(textData)
         .eq('id', editingText.id)
         .select()
       
       if (!error && data) {
         setTexts(texts.map(t => t.id === editingText.id ? data[0] : t))
         setEditingText(null)
-        setNewText({ title: '', content: '', trigger_warning: '' })
+        setNewText({ title: '', author: '', source: '', content: '', instructions: '', trigger_warning: '', due_date: '' })
         setIsAddingText(false)
       }
     } else {
       const { data, error } = await supabase
         .from('texts')
-        .insert([{ class_id: classId, title: newText.title, content: newText.content, trigger_warning: newText.trigger_warning || null }])
+        .insert([{ ...textData, class_id: classId }])
         .select()
       if (!error && data) {
-        setNewText({ title: '', content: '', trigger_warning: '' })
+        setNewText({ title: '', author: '', source: '', content: '', instructions: '', trigger_warning: '', due_date: '' })
         setIsAddingText(false)
         setTexts([data[0], ...texts])
       }
@@ -135,8 +149,12 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
     setEditingText(text)
     setNewText({
       title: text.title,
+      author: text.author || '',
+      source: text.source || '',
       content: text.content,
-      trigger_warning: text.trigger_warning || ''
+      instructions: text.instructions || '',
+      trigger_warning: text.trigger_warning || '',
+      due_date: text.due_date ? new Date(text.due_date).toISOString().slice(0, 16) : ''
     })
     setIsAddingText(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -243,17 +261,55 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
             <GlassCard className="p-10 shadow-lg border-white/60 animate-in slide-in-from-top-4 duration-500">
               <h3 className="text-2xl text-charcoal mb-8">{editingText ? 'Edit Text' : 'Add New Text'}</h3>
               <form onSubmit={handleAddText} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="block text-sm text-charcoal/60 px-2">Title</label>
-                  <input
-                    type="text"
-                    value={newText.title}
-                    onChange={(e) => setNewText({ ...newText, title: e.target.value })}
-                    className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
-                    placeholder="The Road Not Taken"
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm text-charcoal/60 px-2">Title</label>
+                    <input
+                      type="text"
+                      value={newText.title}
+                      onChange={(e) => setNewText({ ...newText, title: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                      placeholder="The Road Not Taken"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm text-charcoal/60 px-2">Author</label>
+                    <input
+                      type="text"
+                      value={newText.author}
+                      onChange={(e) => setNewText({ ...newText, author: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                      placeholder="Robert Frost"
+                    />
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm text-charcoal/60 px-2">Source / Citation</label>
+                    <input
+                      type="text"
+                      value={newText.source}
+                      onChange={(e) => setNewText({ ...newText, source: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                      placeholder="Mountain Interval (1916)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm text-charcoal/60 px-2 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-terracotta/60" />
+                      Due Date
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newText.due_date}
+                      onChange={(e) => setNewText({ ...newText, due_date: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="block text-sm text-charcoal/60 px-2">Content</label>
                   <textarea
@@ -264,6 +320,17 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm text-charcoal/60 px-2">Special Instructions for Students</label>
+                  <textarea
+                    value={newText.instructions}
+                    onChange={(e) => setNewText({ ...newText, instructions: e.target.value })}
+                    className="w-full px-8 py-4 bg-white/40 border-none rounded-3xl focus:ring-2 focus:ring-terracotta/20 outline-none min-h-[100px] text-base text-charcoal leading-relaxed"
+                    placeholder="e.g. Focus on the use of 'you' in the second stanza."
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <label className="block text-sm text-charcoal/60 px-2 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-terracotta/60" />
@@ -312,10 +379,26 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
               texts.map((text) => (
                 <GlassCard key={text.id} className="p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group hover:-translate-y-1 transition-all duration-500 shadow-sm border-white/40">
                   <div className="space-y-3">
-                    <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500">{text.title}</h3>
-                    <p className="text-sm text-warm-grey/60 font-light">
-                      Added {new Date(text.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="space-y-1">
+                      <h3 className="text-3xl text-charcoal group-hover:text-terracotta transition-colors duration-500">{text.title}</h3>
+                      {text.author && <p className="text-lg text-warm-grey/80 font-light">by {text.author}</p>}
+                    </div>
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <p className="text-sm text-warm-grey/60 font-light">
+                        Added {new Date(text.created_at).toLocaleDateString()}
+                      </p>
+                      {text.due_date && (
+                        <div className={cn(
+                          "flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full border",
+                          new Date(text.due_date) < new Date() 
+                            ? "bg-red-50 text-red-500 border-red-100" 
+                            : "bg-terracotta/5 text-terracotta/80 border-terracotta/10"
+                        )}>
+                          <TrendingUp className="w-3 h-3" />
+                          DUE: {new Date(text.due_date).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
                     {text.trigger_warning && (
                       <div className="flex items-center gap-2 text-terracotta/80 text-sm bg-terracotta/5 px-4 py-1.5 rounded-full border border-terracotta/10 w-fit">
                         <AlertTriangle className="w-4 h-4" />

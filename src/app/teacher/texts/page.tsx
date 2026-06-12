@@ -10,12 +10,14 @@ import {
   Loader2, 
   AlertTriangle,
   FileText,
-  BookOpen
+  BookOpen,
+  TrendingUp
 } from 'lucide-react'
 import { Text, Class } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { GlassButton } from '@/components/ui/GlassButton'
+import { cn } from '@/lib/utils'
 
 interface TextWithClass extends Text {
   classes: Class
@@ -25,7 +27,15 @@ export default function TextsPage() {
   const [texts, setTexts] = useState<TextWithClass[]>([])
   const [loading, setLoading] = useState(true)
   const [editingText, setEditingText] = useState<TextWithClass | null>(null)
-  const [editFormData, setEditFormData] = useState({ title: '', content: '', trigger_warning: '' })
+  const [editFormData, setEditFormData] = useState({ 
+    title: '', 
+    author: '',
+    source: '',
+    content: '', 
+    instructions: '',
+    trigger_warning: '',
+    due_date: ''
+  })
   const [saving, setSaving] = useState(false)
   
   const router = useRouter()
@@ -67,13 +77,19 @@ export default function TextsPage() {
     if (!editingText) return
     
     setSaving(true)
+    const textData = { 
+      title: editFormData.title, 
+      author: editFormData.author || null,
+      source: editFormData.source || null,
+      content: editFormData.content, 
+      instructions: editFormData.instructions || null,
+      trigger_warning: editFormData.trigger_warning || null,
+      due_date: editFormData.due_date ? new Date(editFormData.due_date).toISOString() : null
+    }
+
     const { data, error } = await supabase
       .from('texts')
-      .update({ 
-        title: editFormData.title, 
-        content: editFormData.content, 
-        trigger_warning: editFormData.trigger_warning || null 
-      })
+      .update(textData)
       .eq('id', editingText.id)
       .select(`
         *,
@@ -91,8 +107,12 @@ export default function TextsPage() {
     setEditingText(text)
     setEditFormData({
       title: text.title,
+      author: text.author || '',
+      source: text.source || '',
       content: text.content,
-      trigger_warning: text.trigger_warning || ''
+      instructions: text.instructions || '',
+      trigger_warning: text.trigger_warning || '',
+      due_date: text.due_date ? new Date(text.due_date).toISOString().slice(0, 16) : ''
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -116,16 +136,52 @@ export default function TextsPage() {
         <GlassCard className="p-10 shadow-lg border-white/60 animate-in slide-in-from-top-4 duration-500">
           <h3 className="text-2xl text-charcoal mb-8">Edit Text</h3>
           <form onSubmit={handleUpdateText} className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-sm text-charcoal/60 px-2">Title</label>
-              <input
-                type="text"
-                value={editFormData.title}
-                onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm text-charcoal/60 px-2">Title</label>
+                <input
+                  type="text"
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm text-charcoal/60 px-2">Author</label>
+                <input
+                  type="text"
+                  value={editFormData.author}
+                  onChange={(e) => setEditFormData({ ...editFormData, author: e.target.value })}
+                  className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                />
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm text-charcoal/60 px-2">Source / Citation</label>
+                <input
+                  type="text"
+                  value={editFormData.source}
+                  onChange={(e) => setEditFormData({ ...editFormData, source: e.target.value })}
+                  className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm text-charcoal/60 px-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-terracotta/60" />
+                  Due Date
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editFormData.due_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })}
+                  className="w-full px-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="block text-sm text-charcoal/60 px-2">Content</label>
               <textarea
@@ -135,6 +191,16 @@ export default function TextsPage() {
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm text-charcoal/60 px-2">Special Instructions</label>
+              <textarea
+                value={editFormData.instructions}
+                onChange={(e) => setEditFormData({ ...editFormData, instructions: e.target.value })}
+                className="w-full px-8 py-4 bg-white/40 border-none rounded-3xl focus:ring-2 focus:ring-terracotta/20 outline-none min-h-[100px] text-base text-charcoal leading-relaxed"
+              />
+            </div>
+
             <div className="space-y-2">
               <label className="block text-sm text-charcoal/60 px-2 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-terracotta/60" />
@@ -188,6 +254,17 @@ export default function TextsPage() {
                 <p className="text-sm text-warm-grey/60 font-light">
                   Added {new Date(text.created_at).toLocaleDateString()}
                 </p>
+                {text.due_date && (
+                  <div className={cn(
+                    "flex items-center gap-2 text-[10px] font-bold px-3 py-1 rounded-full border w-fit",
+                    new Date(text.due_date) < new Date() 
+                      ? "bg-red-50 text-red-500 border-red-100" 
+                      : "bg-terracotta/5 text-terracotta/80 border-terracotta/10"
+                  )}>
+                    <TrendingUp className="w-3 h-3" />
+                    DUE: {new Date(text.due_date).toLocaleString()}
+                  </div>
+                )}
                 {text.trigger_warning && (
                   <div className="flex items-center gap-2 text-terracotta/80 text-sm bg-terracotta/5 px-4 py-1.5 rounded-full border border-terracotta/10 w-fit">
                     <AlertTriangle className="w-4 h-4" />
