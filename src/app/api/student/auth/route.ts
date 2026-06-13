@@ -10,6 +10,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 });
     }
 
+    // Block teachers from registering as students
+    if (auth_user_id) {
+      const { data: teacherProfile } = await supabase
+        .from('teacher_profiles')
+        .select('id')
+        .eq('id', auth_user_id)
+        .maybeSingle();
+
+      if (teacherProfile) {
+        return NextResponse.json({ error: 'Teacher accounts cannot join as students.' }, { status: 403 });
+      }
+    }
+
     const { data: foundStudent } = await supabase
       .from('students')
       .select('*')

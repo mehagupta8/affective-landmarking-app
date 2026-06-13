@@ -34,13 +34,27 @@ export default function JoinPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // 1. Check for active Supabase session (Google Auth)
+    // 1. Check for active Supabase session — if it belongs to a teacher, block the join flow
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setSupabaseUser(user)
-        setStudentName(prev => prev || user.user_metadata?.full_name || '')
+      if (!user) return
+
+      // Check if this Supabase user is a teacher
+      const { data: profile } = await supabase
+        .from('teacher_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (profile) {
+        // Logged in as a teacher — redirect away
+        router.push('/teacher/dashboard')
+        return
       }
+
+      // Not a teacher — treat as a student linking Google
+      setSupabaseUser(user)
+      setStudentName(prev => prev || user.user_metadata?.full_name || '')
     }
     void checkUser()
 

@@ -21,7 +21,7 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -30,12 +30,25 @@ export default function SignupPage() {
     })
 
     if (error) {
-      setError(error.message)
+      if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
+        setError('An account with this email already exists. Try signing in with Google instead.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
-    } else {
-      setSuccess(true)
-      setLoading(false)
+      return
     }
+
+    // If email confirmation is disabled in Supabase, a session is returned
+    // immediately — redirect straight to dashboard.
+    if (data.session) {
+      window.location.href = '/teacher/dashboard'
+      return
+    }
+
+    // Email confirmation is enabled — tell the user to check their inbox.
+    setSuccess(true)
+    setLoading(false)
   }
 
   const handleGoogleLogin = async () => {
