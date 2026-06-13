@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 // ...
-import { ArrowRight, Loader2, Lock, ChevronLeft } from 'lucide-react'
+import { ArrowRight, Loader2, ChevronLeft } from 'lucide-react'
 import { Class } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -29,8 +29,6 @@ export default function JoinPage() {
   // State for step 'identity'
   const [authAction, setAuthAction] = useState<'join' | 'login'>('login')
   const [studentName, setStudentName] = useState('')
-  const [pin, setPin] = useState('')
-  const [loginAttempts, setLoginAttempts] = useState(0)
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null)
 
   const router = useRouter()
@@ -101,27 +99,19 @@ export default function JoinPage() {
 
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault()
-    if (!/^\d{4}$/.test(pin)) {
-      setError('Please enter a valid 4-digit PIN.')
-      return
-    }
-
     setLoading(true)
     setError(null)
 
     if (!foundClass) return
 
     try {
-      const action = authAction
-
       const response = await fetch('/api/student/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action,
+          action: authAction,
           classId: foundClass.id,
           name: studentName.trim(),
-          pin,
           auth_user_id: supabaseUser?.id || null
         })
       })
@@ -129,14 +119,8 @@ export default function JoinPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        if (action === 'login' && response.status === 401) {
-          const newAttempts = loginAttempts + 1
-          setLoginAttempts(newAttempts)
-          if (newAttempts >= 3) {
-            setError('Forgot your PIN? Ask your teacher to reset it.')
-          } else {
-            setError('Incorrect PIN. Please try again.')
-          }
+        if (authAction === 'login' && response.status === 404) {
+          setError('No account found with that name. Try creating a new account instead.')
         } else {
           setError(result.error || 'Authentication failed.')
         }
@@ -145,7 +129,7 @@ export default function JoinPage() {
       }
 
       router.push('/student/dashboard')
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred.')
     } finally {
       setLoading(false)
@@ -253,28 +237,9 @@ export default function JoinPage() {
                           />
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-charcoal/60 px-2 flex items-center justify-between">
-                            {authAction === 'login' ? 'Enter PIN' : 'Create 4-digit PIN'}
-                            <Lock className="w-3.5 h-3.5 opacity-30" />
-                          </label>
-                          <input
-                            type="password"
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
-                            className="w-full px-6 py-4 bg-white/30 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none transition-all text-charcoal text-center text-2xl tracking-[0.8em] placeholder:text-warm-grey/10"
-                            placeholder="••••"
-                            maxLength={4}
-                            required
-                          />
-                          <p className="text-[10px] text-warm-grey/60 px-4 mt-1">
-                            Remember this PIN — you&apos;ll need it every time you return.
-                          </p>
-                        </div>
-
                         <PillButton
                           type="submit"
-                          disabled={loading || !studentName.trim() || pin.length < 4}
+                          disabled={loading || !studentName.trim()}
                           className="w-full py-5 text-xl flex items-center justify-center gap-3"
                         >
                           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (authAction === 'login' ? 'Enter Space' : 'Create & Join')}

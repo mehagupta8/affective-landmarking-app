@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   FileText,
   TrendingUp,
-  CheckCircle2
+  CheckCircle2,
+  Mail
 } from 'lucide-react'
 import { Class, Text, Student, Annotation } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -437,7 +438,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                 <tr className="bg-white/40 border-b border-white/60">
                   <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Name</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Joined Date</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em] text-right">Privacy</th>
+                  <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em] text-right">Login</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/20">
@@ -456,12 +457,12 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                       </td>
                       <td className="px-10 py-6 text-right">
                         <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 bg-white/40 px-3 py-1 rounded-full border border-white/60">
-                          {student.pin ? (
+                          {student.auth_user_id ? (
                             <>
-                              <Lock className="w-3 h-3" />
-                              PIN PROTECTED
+                              <Mail className="w-3 h-3" />
+                              Google
                             </>
-                          ) : 'OPEN ACCESS'}
+                          ) : 'Name only'}
                         </span>
                       </td>
                     </tr>
@@ -541,8 +542,4 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       )}
     </div>
   )
-}
-
-function Lock({ className }: { className?: string }) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 }
