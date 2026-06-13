@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
-import bcrypt from 'bcryptjs';
 import { createStudentSession } from '@/lib/auth/student';
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, classId, name, pin, auth_user_id } = await request.json();
+    const { action, classId, name, auth_user_id } = await request.json();
 
-    if (!classId || !name || !pin || !/^\d{4}$/.test(pin)) {
+    if (!classId || !name?.trim()) {
       return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 });
     }
 
-    // 1. Check if student exists
     const { data: foundStudent } = await supabase
       .from('students')
       .select('*')
@@ -21,7 +19,6 @@ export async function POST(request: NextRequest) {
 
     let existingStudent = foundStudent;
 
-    // If not found by name, try finding by auth_user_id if provided
     if (!existingStudent && auth_user_id) {
       const { data: linkedStudent } = await supabase
         .from('students')
@@ -37,14 +34,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Account already exists for this class' }, { status: 409 });
       }
 
-      // Create new student
-      const hashedPin = await bcrypt.hash(pin, 10);
       const { data: newStudent, error: createError } = await supabase
         .from('students')
-        .insert([{ 
-          class_id: classId, 
-          name: name.trim(), 
-          pin: hashedPin,
+        .insert([{
+          class_id: classId,
+          name: name.trim(),
           auth_user_id: auth_user_id || null,
           last_login_at: new Date().toISOString()
         }])
@@ -55,19 +49,13 @@ export async function POST(request: NextRequest) {
 
       await createStudentSession(newStudent.id);
       return NextResponse.json({ success: true, studentId: newStudent.id });
-    } 
-    
+    }
+
     if (action === 'login') {
       if (!existingStudent) {
         return NextResponse.json({ error: 'Student not found' }, { status: 404 });
       }
 
-      const isMatch = await bcrypt.compare(pin, existingStudent.pin);
-      if (!isMatch) {
-        return NextResponse.json({ error: 'Incorrect PIN' }, { status: 401 });
-      }
-
-      // Link auth_user_id if not already linked
       if (auth_user_id && !existingStudent.auth_user_id) {
         await supabase
           .from('students')
@@ -75,7 +63,6 @@ export async function POST(request: NextRequest) {
           .eq('id', existingStudent.id);
       }
 
-      // Update last_login_at
       await supabase
         .from('students')
         .update({ last_login_at: new Date().toISOString() })

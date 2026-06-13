@@ -260,7 +260,7 @@ export default function StudentDashboard() {
                         Google
                       </div>
                     ) : (
-                      <span className="text-charcoal/40 italic">PIN Only</span>
+                      <span className="text-charcoal/40 italic">Name only</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between text-sm">

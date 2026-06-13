@@ -10,7 +10,7 @@
   - Upload literary texts with optional trigger warnings.
   - Track student enrollment.
 - **Student Experience:**
-  - Join classes using a simple code and identity verification (Name + optional PIN).
+  - Join classes using a simple code and display name (optional Google sign-in).
   - **Annotation UI:** Interactive text selection with a floating Rasa/Emotion palette. Supports overlapping highlights with semi-transparent blending.
   - Real-time auto-saving of annotations.
 - **Visualizations (Plotly.js):**

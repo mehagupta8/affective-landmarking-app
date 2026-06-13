@@ -7,8 +7,8 @@ export function HowToUseContent() {
       description: "Teachers create a class and upload texts. Students join using a unique 6-digit class code."
     },
     {
-      title: "Secure Your Identity",
-      description: "Both teachers and students create a 4-digit PIN. This ensures your annotations and dashboard remain private."
+      title: "Sign In",
+      description: "Teachers sign in with email or Google. Students enter their display name to join or return to their class."
     },
     {
       title: "Assign & Read",

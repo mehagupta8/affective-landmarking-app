@@ -3,14 +3,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { 
-  User as UserIcon, 
-  Lock, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  User as UserIcon,
+  Loader2,
+  CheckCircle2,
   AlertCircle,
   Mail,
-  Fingerprint
 } from 'lucide-react'
 import { User } from '@supabase/supabase-js'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -22,13 +20,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-
-  // Profile State
   const [fullName, setFullName] = useState('')
-
-  // Security State
-  const [newPin, setNewPin] = useState('')
-  const [confirmPin, setConfirmPin] = useState('')
 
   const router = useRouter()
 
@@ -42,8 +34,6 @@ export default function SettingsPage() {
       }
       setUser(user)
       setFullName(user.user_metadata?.full_name || '')
-      setNewPin(user.user_metadata?.pin || '')
-      setConfirmPin(user.user_metadata?.pin || '')
       setLoading(false)
     }
     void fetchUser()
@@ -62,35 +52,6 @@ export default function SettingsPage() {
       setMessage({ type: 'error', text: error.message })
     } else {
       setMessage({ type: 'success', text: 'Profile updated successfully.' })
-    }
-    setUpdating(false)
-  }
-
-  const handleUpdateSecurity = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setUpdating(true)
-    setMessage(null)
-
-    if (newPin !== confirmPin) {
-      setMessage({ type: 'error', text: 'PINs do not match.' })
-      setUpdating(false)
-      return
-    }
-
-    if (!/^\d{4}$/.test(newPin)) {
-      setMessage({ type: 'error', text: 'PIN must be exactly 4 digits.' })
-      setUpdating(false)
-      return
-    }
-
-    const { error } = await supabase.auth.updateUser({
-      data: { pin: newPin }
-    })
-
-    if (error) {
-      setMessage({ type: 'error', text: error.message })
-    } else {
-      setMessage({ type: 'success', text: 'Classroom PIN updated successfully.' })
     }
     setUpdating(false)
   }
@@ -120,8 +81,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Profile Settings */}
+      <div className="max-w-xl">
         <div className="space-y-8">
           <div className="flex items-center gap-3 px-2">
             <UserIcon className="w-6 h-6 text-terracotta" />
@@ -158,65 +118,13 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <PillButton 
-                type="submit" 
+              <PillButton
+                type="submit"
                 disabled={updating}
                 className="w-full py-4 flex items-center justify-center gap-3 mt-4"
               >
                 {updating && <Loader2 className="w-5 h-5 animate-spin" />}
                 Update Profile
-              </PillButton>
-            </form>
-          </GlassCard>
-        </div>
-
-        {/* Security Settings */}
-        <div className="space-y-8">
-          <div className="flex items-center gap-3 px-2">
-            <Lock className="w-6 h-6 text-terracotta" />
-            <h2 className="text-4xl text-charcoal font-light">Identity Verification</h2>
-          </div>
-
-          <GlassCard className="p-10 border-white/40 shadow-lg">
-            <form onSubmit={handleUpdateSecurity} className="space-y-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">New PIN for Class</label>
-                <div className="relative">
-                  <Fingerprint className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
-                  <input
-                    type="password"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    className="w-full pl-16 pr-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal tracking-[0.5em] transition-all"
-                    placeholder="••••"
-                    maxLength={4}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-charcoal/60 px-2 uppercase tracking-widest">Confirm New PIN</label>
-                <div className="relative">
-                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-terracotta/40" />
-                  <input
-                    type="password"
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value)}
-                    className="w-full pl-16 pr-6 py-4 bg-white/40 border-none rounded-full focus:ring-2 focus:ring-terracotta/20 outline-none text-lg text-charcoal tracking-[0.5em] transition-all"
-                    placeholder="••••"
-                    maxLength={4}
-                  />
-                </div>
-                <p className="text-[10px] text-warm-grey/60 px-4">The 4-digit code used to unlock your portal.</p>
-              </div>
-
-              <PillButton 
-                type="submit" 
-                disabled={updating}
-                className="w-full py-4 flex items-center justify-center gap-3 mt-4"
-              >
-                {updating && <Loader2 className="w-5 h-5 animate-spin" />}
-                Save Security PIN
               </PillButton>
             </form>
           </GlassCard>

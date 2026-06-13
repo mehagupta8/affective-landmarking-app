@@ -7,7 +7,7 @@ import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Info, HelpCircle } 
 import { cn } from '@/lib/utils'
 import { Orb } from '@/components/ui/Orb'
 import { supabase } from '@/lib/supabase/client'
-import { TeacherPinGuard } from '@/components/auth/TeacherPinGuard'
+import { TeacherAuthGuard } from '@/components/auth/TeacherAuthGuard'
 
 const navItems = [
   { label: 'Dashboard', href: '/teacher/dashboard', icon: LayoutDashboard },
@@ -71,9 +71,9 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
       {/* Main Content Area */}
       <main className="flex-1 p-12 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
-          <TeacherPinGuard>
+          <TeacherAuthGuard>
             {children}
-          </TeacherPinGuard>
+          </TeacherAuthGuard>
         </div>
       </main>
     </div>
