@@ -1,17 +1,21 @@
 'use client'
 
 import { useState, useEffect, ReactNode } from 'react'
+import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { usePathname } from 'next/navigation'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Orb } from '@/components/ui/Orb'
 import { Loader2, Lock, ShieldCheck } from 'lucide-react'
+import { TeacherProfileOnboarding } from './TeacherProfileOnboarding'
 
 export function TeacherPinGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const [loading, setLoading] = useState(true)
   const [authenticated, setAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [hasProfile, setHasProfile] = useState(false)
   const [hasPin, setHasPin] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [pin, setPin] = useState('')
@@ -27,41 +31,44 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     console.log('TeacherPinGuard mounted on:', pathname)
-    
-    // Initial check
-    const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser()
-      const user = data?.user
-      
-      console.log('Initial user check:', { user: user?.id, error: error?.message })
-      
-      if (user) {
-        setAuthenticated(true)
-        const userPin = user.user_metadata?.pin
-        setHasPin(!!userPin)
-      } else {
+
+    const applyUser = async (user: User | null) => {
+      if (!user) {
         setAuthenticated(false)
+        setCurrentUser(null)
+        setHasProfile(false)
         setHasPin(false)
+        setLoading(false)
+        return
+      }
+      setAuthenticated(true)
+      setCurrentUser(user)
+      setHasPin(!!user.user_metadata?.pin)
+
+      // Check whether this teacher has completed the profile onboarding.
+      // If the query fails (table missing, RLS, etc.) treat as already-completed
+      // so legacy users aren't blocked by infrastructure issues.
+      const { data: profile, error: profileError } = await supabase
+        .from('teacher_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (profileError) {
+        console.warn('teacher_profiles lookup failed; skipping onboarding gate:', profileError.message)
+        setHasProfile(true)
+      } else {
+        setHasProfile(!!profile)
       }
       setLoading(false)
     }
-    
-    checkUser()
+
+    // Initial check
+    supabase.auth.getUser().then(({ data }) => applyUser(data?.user ?? null))
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user
-      console.log('Auth state change:', { event, user: user?.id })
-      
-      if (user) {
-        setAuthenticated(true)
-        const userPin = user.user_metadata?.pin
-        setHasPin(!!userPin)
-      } else {
-        setAuthenticated(false)
-        setHasPin(false)
-      }
-      setLoading(false)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', { event, user: session?.user?.id })
+      void applyUser(session?.user ?? null)
     })
 
     return () => {
@@ -145,6 +152,15 @@ export function TeacherPinGuard({ children }: { children: ReactNode }) {
       <div className="flex items-center justify-center h-[60vh]">
         <Loader2 className="w-10 h-10 animate-spin text-terracotta/40" />
       </div>
+    )
+  }
+
+  if (currentUser && !hasProfile) {
+    return (
+      <TeacherProfileOnboarding
+        user={currentUser}
+        onComplete={() => setHasProfile(true)}
+      />
     )
   }
 
