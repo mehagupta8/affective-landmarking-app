@@ -79,3 +79,13 @@ export interface WritingSubmission {
   selected_annotation_ids: string[] | null;
   created_at: string;
 }
+
+export interface TeacherProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  institution: string;
+  created_at: string;
+  updated_at: string;
+}
