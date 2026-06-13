@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Loader2, ChevronLeft, CheckCircle } from 'lucide-react'
+import { Loader2, ChevronLeft } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { GoogleButton } from '@/components/ui/GoogleButton'
@@ -14,20 +14,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    const { error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
       if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
@@ -39,16 +32,7 @@ export default function SignupPage() {
       return
     }
 
-    // If email confirmation is disabled in Supabase, a session is returned
-    // immediately — redirect straight to dashboard.
-    if (data.session) {
-      window.location.href = '/teacher/dashboard'
-      return
-    }
-
-    // Email confirmation is enabled — tell the user to check their inbox.
-    setSuccess(true)
-    setLoading(false)
+    window.location.href = '/teacher/dashboard'
   }
 
   const handleGoogleLogin = async () => {
@@ -59,25 +43,6 @@ export default function SignupPage() {
       },
     })
     if (error) setError(error.message)
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen atmospheric-bg flex items-center justify-center p-6">
-        <GlassCard className="max-w-md w-full p-12 shadow-2xl border-white/40 text-center animate-in zoom-in fade-in duration-700">
-          <div className="bg-white/40 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
-            <CheckCircle className="w-10 h-10 text-terracotta" />
-          </div>
-          <h1 className="text-3xl font-normal text-charcoal mb-4">Check your email</h1>
-          <p className="text-warm-grey text-lg mb-10 font-light">
-            We&apos;ve sent a confirmation link to <strong>{email}</strong>.
-          </p>
-          <Link href="/teacher/login" className="w-full block">
-            <PillButton className="w-full py-4 text-xl">Go to Login</PillButton>
-          </Link>
-        </GlassCard>
-      </div>
-    )
   }
 
   return (
@@ -134,9 +99,9 @@ export default function SignupPage() {
           >
             {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Create Account'}
           </PillButton>
-          </form>
+        </form>
 
-          <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-4">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-charcoal/5"></div>
@@ -147,9 +112,9 @@ export default function SignupPage() {
           </div>
 
           <GoogleButton onClick={handleGoogleLogin} />
-          </div>
+        </div>
 
-          <p className="text-center mt-10 text-base text-warm-grey font-light">
+        <p className="text-center mt-10 text-base text-warm-grey font-light">
           Already have an account?{' '}
           <Link href="/teacher/login" className="text-terracotta font-medium hover:underline">
             Sign in
