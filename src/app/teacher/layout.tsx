@@ -21,10 +21,19 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
 
+  const isPublicRoute = pathname === '/teacher/login' ||
+                        pathname?.startsWith('/teacher/login/') ||
+                        pathname === '/teacher/signup' ||
+                        pathname?.startsWith('/teacher/signup/')
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
     router.refresh()
+  }
+
+  if (isPublicRoute) {
+    return <>{children}</>
   }
 
   return (
