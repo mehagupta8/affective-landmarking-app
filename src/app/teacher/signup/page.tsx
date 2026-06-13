@@ -24,7 +24,7 @@ export default function SignupPage() {
 
     if (error) {
       if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
-        setError('An account with this email already exists. Try signing in with Google instead.')
+        setError('An account with this email already exists. Please sign in instead.')
       } else {
         setError(error.message)
       }

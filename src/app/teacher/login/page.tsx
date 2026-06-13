@@ -35,7 +35,11 @@ function LoginForm() {
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) {
-        setError(signInError.message)
+        if (signInError.message.toLowerCase().includes('invalid login credentials')) {
+          setError('Incorrect email or password. If you signed up with Google, use the "Continue with Google" button below.')
+        } else {
+          setError(signInError.message)
+        }
         setLoading(false)
       } else {
         window.location.href = '/teacher/dashboard'
