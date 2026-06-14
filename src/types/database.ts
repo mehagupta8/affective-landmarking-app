@@ -32,7 +32,17 @@ export interface Class {
   name: string;
   class_code: string;
   due_date: string | null;
+  allow_guests: boolean;
   created_at: string;
+}
+
+export interface GuestSession {
+  id: string;
+  class_id: string;
+  display_name: string;
+  submitted_texts: string[] | null;
+  created_at: string;
+  last_active_at: string | null;
 }
 
 export interface Text {
