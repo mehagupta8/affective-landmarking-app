@@ -58,7 +58,7 @@ export default function StudentDashboard() {
 
     if (!enrollments || enrollments.length === 0) {
       setLoading(false)
-      setShowJoin(true)
+      setShowJoin(true) // auto-open join panel on first login
       return
     }
 
@@ -154,47 +154,6 @@ export default function StudentDashboard() {
     )
   }
 
-  // No classes yet — show join form
-  if (showJoin && enrolledClasses.length === 0) {
-    return (
-      <div className="min-h-screen atmospheric-bg flex items-center justify-center p-6">
-        <GlassCard className="max-w-md w-full p-12 shadow-2xl border-white/40 animate-in fade-in zoom-in duration-500">
-          <div className="flex flex-col items-center mb-10 text-center">
-            <Orb size="md" className="mb-6" />
-            <h1 className="text-3xl font-normal text-charcoal">Join a Class</h1>
-            <p className="text-warm-grey text-base mt-2 font-light">Enter the class code from your teacher.</p>
-          </div>
-          {joinError && (
-            <div className="bg-red-50/30 border border-red-100 text-red-600 px-4 py-2 rounded-xl text-sm mb-6 text-center">
-              {joinError}
-            </div>
-          )}
-          <div className="space-y-6">
-            <input
-              type="text"
-              value={classCode}
-              onChange={(e) => setClassCode(e.target.value.toUpperCase())}
-              className="w-full text-center text-4xl font-mono tracking-[0.4em] px-4 py-6 bg-white/30 border-none rounded-[28px] focus:ring-2 focus:ring-terracotta/20 outline-none uppercase placeholder:text-warm-grey/10 text-charcoal"
-              placeholder="------"
-              maxLength={6}
-            />
-            <PillButton
-              onClick={handleJoinClass}
-              disabled={joining || classCode.length < 6}
-              className="w-full py-5 text-xl flex items-center justify-center gap-3"
-            >
-              {joining ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Join Class'}
-              <ArrowRight className="w-6 h-6" />
-            </PillButton>
-          </div>
-          <button onClick={handleLogout} className="mt-8 w-full text-center text-sm text-warm-grey/40 hover:text-charcoal transition-colors">
-            Sign out
-          </button>
-        </GlassCard>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen atmospheric-bg py-6 px-4 md:py-12 md:px-8">
       <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
@@ -282,7 +241,19 @@ export default function StudentDashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-              {texts.length === 0 ? (
+              {enrolledClasses.length === 0 ? (
+                <GlassCard className="py-16 px-8 text-center border-dashed border-2 border-white/30 bg-white/10 space-y-6">
+                  <Orb size="md" className="mx-auto opacity-60" />
+                  <div className="space-y-2">
+                    <p className="text-charcoal text-xl font-light">You haven&apos;t joined a class yet.</p>
+                    <p className="text-warm-grey text-sm">Ask your teacher for a class code to get started.</p>
+                  </div>
+                  <PillButton onClick={() => setShowJoin(true)} className="mx-auto px-8 py-3 flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Join a Class
+                  </PillButton>
+                </GlassCard>
+              ) : texts.length === 0 ? (
                 <GlassCard className="py-24 text-center border-dashed border-2 border-white/30 bg-white/10">
                   <p className="text-warm-grey text-xl font-light">No texts assigned yet.</p>
                 </GlassCard>
