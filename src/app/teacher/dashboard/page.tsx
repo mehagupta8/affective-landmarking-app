@@ -9,7 +9,6 @@ import { Class } from '@/types/database'
 import { generateClassCode } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
-import { GlassButton } from '@/components/ui/GlassButton'
 import { cn } from '@/lib/utils'
 
 export default function Dashboard() {

@@ -13,7 +13,6 @@ import {
   BookOpen,
   TrendingUp,
   Copy,
-  Check,
   MoreVertical,
   Trash2,
   Edit2
@@ -34,9 +33,7 @@ export default function TextsPage() {
   const [loading, setLoading] = useState(true)
 
   // Clone State
-  const [cloningTextId, setCloningTextId] = useState<string | null>(null)
-  const [isCloning, setIsCloning] = useState(false)
-  const [clonedSuccessId, setClonedSuccessId] = useState<string | null>(null)
+  
   
   // Menu State
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
@@ -88,8 +85,7 @@ export default function TextsPage() {
 
   const handleCloneToClass = async (text: TextWithClass, targetClassId: string) => {
     if (targetClassId === text.class_id) return
-    setIsCloning(true)
-    
+
     const { data, error } = await supabase
       .from('texts')
       .insert([{
@@ -107,11 +103,7 @@ export default function TextsPage() {
 
     if (!error && data) {
       setTexts([data as TextWithClass, ...texts])
-      setClonedSuccessId(text.id)
-      setTimeout(() => setClonedSuccessId(null), 3000)
     }
-    setCloningTextId(null)
-    setIsCloning(false)
   }
 
   const handleUpdateText = async (e: FormEvent) => {

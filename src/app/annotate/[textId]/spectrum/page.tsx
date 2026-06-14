@@ -37,7 +37,8 @@ export default function StudentSpectrumPage({ params }: { params: Promise<{ text
 
       setText(textData)
       setAnnotations(annRes.data || [])
-      setStudents((enrollRes.data || []).map((e: any) => e.student_profiles).filter(Boolean))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setStudents((enrollRes.data || []).map((e: any) => e.student_profiles as StudentProfile).filter(Boolean))
     } catch (err) {
       console.error(err)
     } finally {

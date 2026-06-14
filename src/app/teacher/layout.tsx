@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Info, HelpCircle } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Settings, LogOut, Info, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Orb } from '@/components/ui/Orb'
 import { supabase } from '@/lib/supabase/client'

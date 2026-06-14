@@ -2,10 +2,9 @@
 
 import React, { useMemo } from 'react'
 import { AffectiveStats } from '@/lib/utils/statistics'
-import { Annotation, RASA_CONFIGS, RasaLabel } from '@/types/database'
+import { Annotation, RASA_CONFIGS } from '@/types/database'
 import { GlassCard } from '../ui/GlassCard'
 import { TrendingUp, Users, Layers, Zap, Info } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface StatsDashboardProps {
   text: string

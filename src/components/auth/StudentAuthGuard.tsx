@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase/client'
 import { usePathname, useRouter } from 'next/navigation'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
-import { Orb } from '@/components/ui/Orb'
 import { Loader2, UserCircle2 } from 'lucide-react'
 
 function splitFullName(name: string | undefined) {
@@ -135,6 +134,7 @@ export function StudentAuthGuard({ children }: { children: ReactNode }) {
       void checkUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
   if (isPublic) return <>{children}</>

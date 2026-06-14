@@ -52,16 +52,3 @@ export default function LandingPage() {
   );
 }
 
-function PortalCard({ title, description, href, buttonText }: { title: string, description: string, href: string, buttonText: string }) {
-  return (
-    <GlassCard className="flex flex-col items-center p-10 hover:-translate-y-1 transition-all duration-500">
-      <h2 className="text-3xl text-charcoal mb-4">{title}</h2>
-      <p className="text-warm-grey mb-10 text-lg leading-relaxed h-12">
-        {description}
-      </p>
-      <Link href={href} className="w-full">
-        <PillButton className="w-full py-4 text-xl">{buttonText}</PillButton>
-      </Link>
-    </GlassCard>
-  )
-}

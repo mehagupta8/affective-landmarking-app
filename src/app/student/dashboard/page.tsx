@@ -1,18 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  BookOpen,
   Loader2,
   TrendingUp,
   BarChart2,
   Calendar,
   User,
   LogOut,
-  ChevronRight,
   ArrowRight,
   Plus,
   Sparkles
@@ -64,7 +62,8 @@ export default function StudentDashboard() {
       return
     }
 
-    const classes: EnrolledClass[] = enrollments.map((e: any) => ({
+    type RawEnrollment = ClassEnrollment & { classes: Class }
+    const classes: EnrolledClass[] = (enrollments as RawEnrollment[]).map((e) => ({
       ...e.classes,
       enrollment: { id: e.id, student_id: e.student_id, class_id: e.class_id, joined_at: e.joined_at, last_active_at: e.last_active_at, submitted_texts: e.submitted_texts }
     }))
@@ -72,11 +71,11 @@ export default function StudentDashboard() {
 
     const activeId = selectedClassId || classes[0].id
     setSelectedClassId(activeId)
-    await loadClassData(user.id, activeId, enrollments.find((e: any) => e.class_id === activeId))
+    await loadClassData(user.id, activeId)
     setLoading(false)
   }, [selectedClassId, router])
 
-  const loadClassData = async (userId: string, classId: string, enrollment: any) => {
+  const loadClassData = async (userId: string, classId: string) => {
     const [textsRes, annRes, writingRes] = await Promise.all([
       supabase.from('texts').select('*').eq('class_id', classId).order('created_at', { ascending: false }),
       supabase.from('annotations').select('*').eq('student_id', userId),
@@ -87,7 +86,7 @@ export default function StudentDashboard() {
     setWritingSubmissions(writingRes.data || [])
   }
 
-  useEffect(() => { void fetchData() }, [])
+  useEffect(() => { void fetchData() }, [fetchData])
 
   const handleJoinClass = async () => {
     setJoining(true)
