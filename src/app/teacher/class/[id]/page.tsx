@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   Mail
 } from 'lucide-react'
-import { Class, Text, Student, Annotation } from '@/types/database'
+import { Class, Text, StudentProfile, Annotation } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { GlassButton } from '@/components/ui/GlassButton'
@@ -27,7 +27,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   const { id: classId } = use(params)
   const [cls, setCls] = useState<Class | null>(null)
   const [texts, setTexts] = useState<Text[]>([])
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<StudentProfile[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'texts' | 'students' | 'progress'>('texts')
@@ -80,12 +80,12 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
         .order('created_at', { ascending: false })
       setTexts(textsData || [])
 
-      const { data: studentsData } = await supabase
-        .from('students')
-        .select('*')
+      const { data: enrollData } = await supabase
+        .from('class_enrollments')
+        .select('student_profiles(*)')
         .eq('class_id', classId)
-        .order('name', { ascending: true })
-      setStudents(studentsData || [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setStudents((enrollData || []).map((e: any) => e.student_profiles as StudentProfile).filter(Boolean))
 
       if (textsData && textsData.length > 0) {
         const textIds = textsData.map(t => t.id)
@@ -451,18 +451,16 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                 ) : (
                   students.map((student) => (
                     <tr key={student.id} className="hover:bg-white/30 transition-colors group">
-                      <td className="px-10 py-6 text-xl text-charcoal group-hover:text-terracotta transition-colors">{student.name}</td>
+                      <td className="px-10 py-6 text-xl text-charcoal group-hover:text-terracotta transition-colors">{student.first_name} {student.last_name}</td>
                       <td className="px-10 py-6 text-base text-warm-grey/80">
                         {new Date(student.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-10 py-6 text-right">
                         <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 bg-white/40 px-3 py-1 rounded-full border border-white/60">
-                          {student.auth_user_id ? (
-                            <>
-                              <Mail className="w-3 h-3" />
-                              Google
-                            </>
-                          ) : 'Name only'}
+                          <>
+                            <Mail className="w-3 h-3" />
+                            Google
+                          </>
                         </span>
                       </td>
                     </tr>
@@ -500,10 +498,10 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-terracotta/20 to-terracotta/5 flex items-center justify-center text-terracotta font-bold text-xl border border-terracotta/10">
-                        {student.name.charAt(0)}
+                        {student.first_name.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="text-2xl text-charcoal font-normal">{student.name}</h3>
+                        <h3 className="text-2xl text-charcoal font-normal">{student.first_name} {student.last_name}</h3>
                         <p className="text-sm text-warm-grey/60">Individual annotation metrics</p>
                       </div>
                     </div>

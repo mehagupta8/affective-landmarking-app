@@ -93,7 +93,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
       setText(textRes.data)
       setAnnotations(annRes.data || [])
 
-      const allSubmitted = (enrollRes.data || []).flatMap((e: any) => e.submitted_texts || [])
+      const allSubmitted = (enrollRes.data || []).flatMap((e: { submitted_texts: string[] | null }) => e.submitted_texts || [])
       if (allSubmitted.includes(textId)) setIsSubmitted(true)
 
       if (textRes.data.trigger_warning) setShowTriggerWarning(true)
@@ -348,10 +348,10 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           <GlassCard className="flex items-center gap-6 px-6 py-3 border-white/40 shadow-lg">
             <div className="flex flex-col items-end">
               <div className="flex items-center gap-2 mb-0.5">
-                {student.auth_user_id && <Mail className="w-3 h-3 text-terracotta/40" />}
+                <Mail className="w-3 h-3 text-terracotta/40" />
                 <span className="text-[10px] font-bold text-terracotta uppercase tracking-widest">Logged in as</span>
               </div>
-              <span className="text-sm text-charcoal font-medium">{student.name}</span>
+              <span className="text-sm text-charcoal font-medium">{student.first_name} {student.last_name}</span>
             </div>
             <div className="w-px h-8 bg-charcoal/10" />
             <StudentSignOut />
@@ -387,7 +387,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           Dashboard
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-warm-grey">{student?.name}</span>
+          <span className="text-sm text-warm-grey">{student ? `${student.first_name} ${student.last_name}` : ''}</span>
           <Orb size="xs" animate={saving} className={cn(saving ? "opacity-100" : "opacity-40")} />
         </div>
       </header>

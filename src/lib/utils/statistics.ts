@@ -45,7 +45,6 @@ export class AffectiveStats {
   getDistribution(): EmotionCoverage[] {
     if (this.textLength === 0) return []
 
-    const emotionStats: Record<string, number> = {}
     let totalUniqueCoverageAcrossAll = 0
 
     const labels = Object.keys(RASA_CONFIGS) as RasaLabel[]

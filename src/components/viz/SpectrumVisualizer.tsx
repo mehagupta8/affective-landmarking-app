@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useRef, useMemo } from 'react'
-import { RASA_CONFIGS, RasaLabel, Annotation, Student } from '@/types/database'
+import { RASA_CONFIGS, RasaLabel, Annotation, StudentProfile } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 
 interface SpectrumProps {
   text: string
   annotations: Annotation[]
-  students: Student[]
+  students: StudentProfile[]
   title?: string
 }
 
@@ -63,7 +63,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
 
     charMap.forEach((freqs, i) => {
       const sorted = Object.entries(freqs)
-        .filter(([_, count]) => count > 0)
+        .filter(([, count]) => count > 0)
         .sort((a, b) => b[1] - a[1])
         .map(([label, count]) => ({
           label: label as RasaLabel,
@@ -273,7 +273,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                       alignmentBaseline="middle"
                       className="fill-charcoal font-bold text-sm uppercase tracking-wider font-sans"
                     >
-                      {student.name}
+                      {student.first_name} {student.last_name}
                     </text>
 
                     <rect 
@@ -311,7 +311,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                           fill="transparent"
                           className="cursor-crosshair"
                           onMouseMove={(e) => handleMouseMove(e, {
-                            studentName: student.name,
+                            studentName: `${student.first_name} ${student.last_name}`,
                             emotions: seg.emotions.map(label => ({
                               name: RASA_CONFIGS[label].name,
                               color: RASA_CONFIGS[label].color
