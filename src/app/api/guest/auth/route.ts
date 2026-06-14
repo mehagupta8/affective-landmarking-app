@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { supabase } from '@/lib/supabase/client'
 import { createGuestSession, clearGuestSession } from '@/lib/auth/guest'
-
-function serverClient() {
-  const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        async getAll() { return (await cookieStore).getAll() },
-        async setAll(cs) { cs.forEach(({ name, value, options }) => cookieStore.then(s => s.set(name, value, options))) }
-      }
-    }
-  )
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +9,6 @@ export async function POST(request: NextRequest) {
     if (!classId || !displayName?.trim()) {
       return NextResponse.json({ error: 'Missing classId or displayName' }, { status: 400 })
     }
-
-    const supabase = serverClient()
 
     // Verify class exists and allows guests
     const { data: cls, error: clsError } = await supabase
@@ -42,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This class does not allow guest access' }, { status: 403 })
     }
 
-    // Create guest session row
+    // Create guest session row (public INSERT policy allows this with anon key)
     const { data: session, error: sessionError } = await supabase
       .from('guest_sessions')
       .insert({ class_id: classId, display_name: displayName.trim() })
@@ -50,12 +33,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (sessionError || !session) {
+      console.error('guest_sessions insert error:', sessionError)
       return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
     }
 
     await createGuestSession(session.id, classId)
     return NextResponse.json({ success: true, guestId: session.id })
-  } catch {
+  } catch (err) {
+    console.error('guest auth error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
