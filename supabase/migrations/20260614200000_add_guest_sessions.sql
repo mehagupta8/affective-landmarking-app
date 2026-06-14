@@ -16,10 +16,18 @@ CREATE TABLE guest_sessions (
 
 ALTER TABLE guest_sessions ENABLE ROW LEVEL SECURITY;
 
--- Guests have no auth.uid() so all access goes through server-side API routes
--- (service role bypasses RLS). No client-side policies needed.
+-- Guests have no auth.uid() so we use permissive public policies
+-- (same pattern as the old students table). The JWT cookie is the access control.
+CREATE POLICY "Public insert guest sessions" ON guest_sessions
+  FOR INSERT WITH CHECK (true);
 
--- Teachers can read guest sessions for their classes
+CREATE POLICY "Public read guest sessions" ON guest_sessions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Public update guest sessions" ON guest_sessions
+  FOR UPDATE USING (true) WITH CHECK (true);
+
+-- Teachers can also read guest sessions for their classes
 CREATE POLICY "Teachers read guest sessions" ON guest_sessions
   FOR SELECT USING (
     EXISTS (
