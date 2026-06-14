@@ -41,6 +41,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
   const [deletingClass, setDeletingClass] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [togglingGuests, setTogglingGuests] = useState(false)
   
   // New Text Form State
   const [isAddingText, setIsAddingText] = useState(false)
@@ -170,6 +171,18 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
     })
     setIsAddingText(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleToggleGuests = async () => {
+    if (!cls) return
+    setTogglingGuests(true)
+    const newVal = !cls.allow_guests
+    const { error } = await supabase
+      .from('classes')
+      .update({ allow_guests: newVal })
+      .eq('id', classId)
+    if (!error) setCls({ ...cls, allow_guests: newVal })
+    setTogglingGuests(false)
   }
 
   const handleRemoveStudent = async (studentId: string) => {
@@ -580,6 +593,48 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       ) : activeTab === 'manage' ? (
         /* ── Manage Tab ───────────────────────────────────────────────── */
         <div className="space-y-10 animate-in fade-in duration-500">
+
+          {/* Guest Access Toggle */}
+          <section className="space-y-6">
+            <h2 className="text-3xl text-charcoal font-light flex items-center gap-3">
+              <Settings className="w-6 h-6 text-terracotta/60" />
+              Class Settings
+            </h2>
+            <GlassCard className="p-8 border-white/40">
+              <div className="flex items-center justify-between gap-6">
+                <div className="space-y-1">
+                  <p className="text-charcoal font-medium flex items-center gap-2">
+                    Allow Guest Access
+                  </p>
+                  <p className="text-warm-grey/70 text-sm">
+                    When enabled, anyone with the class code can join as a guest without creating an account — like Kahoot.
+                    Guests can annotate and submit, but sessions expire after 24 hours.
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleGuests}
+                  disabled={togglingGuests}
+                  className={cn(
+                    "relative shrink-0 w-14 h-7 rounded-full transition-colors duration-300 disabled:opacity-50",
+                    cls?.allow_guests ? "bg-terracotta" : "bg-charcoal/20"
+                  )}
+                >
+                  <span className={cn(
+                    "absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300",
+                    cls?.allow_guests ? "translate-x-7" : "translate-x-0"
+                  )} />
+                </button>
+              </div>
+              {cls?.allow_guests && (
+                <div className="mt-4 pt-4 border-t border-charcoal/5 text-sm text-warm-grey/60">
+                  Share code{' '}
+                  <span className="font-mono font-bold text-terracotta bg-terracotta/5 px-2 py-0.5 rounded-lg">{cls?.class_code}</span>
+                  {' '}and guests can join at{' '}
+                  <span className="font-medium text-charcoal/60">/join</span>
+                </div>
+              )}
+            </GlassCard>
+          </section>
 
           {/* Manage Students */}
           <section className="space-y-6">
