@@ -6,24 +6,36 @@ import { InfoTabs } from '@/components/info/InfoTabs';
 
 export default function LandingPage() {
   const mainPortalContent = (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 w-full max-w-3xl">
-      <GlassCard className="flex flex-col items-center p-6 md:p-10 hover:-translate-y-1 transition-all duration-500">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+      <GlassCard className="flex flex-col items-center p-6 md:p-8 hover:-translate-y-1 transition-all duration-500">
         <h2 className="text-2xl md:text-3xl text-charcoal mb-3 md:mb-4">I&apos;m a Teacher</h2>
-        <p className="text-warm-grey mb-6 md:mb-10 text-base md:text-lg leading-relaxed">
+        <p className="text-warm-grey mb-6 md:mb-8 text-base leading-relaxed flex-1">
           Manage classes, upload texts, and view student visualizations.
         </p>
         <Link href="/teacher/login" className="w-full">
-          <PillButton className="w-full py-3 md:py-4 text-lg md:text-xl">Enter Portal</PillButton>
+          <PillButton className="w-full py-3 text-lg">Enter Portal</PillButton>
         </Link>
       </GlassCard>
 
-      <GlassCard className="flex flex-col items-center p-6 md:p-10 hover:-translate-y-1 transition-all duration-500">
+      <GlassCard className="flex flex-col items-center p-6 md:p-8 hover:-translate-y-1 transition-all duration-500">
         <h2 className="text-2xl md:text-3xl text-charcoal mb-3 md:mb-4">I&apos;m a Student</h2>
-        <p className="text-warm-grey mb-6 md:mb-10 text-base md:text-lg leading-relaxed">
+        <p className="text-warm-grey mb-6 md:mb-8 text-base leading-relaxed flex-1">
           Join a class, manage assignments, and track your progress.
         </p>
         <Link href="/student/login" className="w-full">
-          <PillButton className="w-full py-3 md:py-4 text-lg md:text-xl">Student Portal</PillButton>
+          <PillButton className="w-full py-3 text-lg">Student Portal</PillButton>
+        </Link>
+      </GlassCard>
+
+      <GlassCard className="flex flex-col items-center p-6 md:p-8 hover:-translate-y-1 transition-all duration-500 border-dashed border-white/30 bg-white/20">
+        <h2 className="text-2xl md:text-3xl text-charcoal mb-3 md:mb-4">Join as Guest</h2>
+        <p className="text-warm-grey mb-6 md:mb-8 text-base leading-relaxed flex-1">
+          No account needed. Enter a class code and start annotating instantly.
+        </p>
+        <Link href="/join" className="w-full">
+          <PillButton className="w-full py-3 text-lg bg-white/40 text-charcoal border border-charcoal/10 shadow-sm hover:bg-white/60">
+            Enter as Guest
+          </PillButton>
         </Link>
       </GlassCard>
     </div>
