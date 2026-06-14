@@ -18,14 +18,8 @@ export default function SubmissionSuccessPage({ params }: { params: Promise<{ te
 
   useEffect(() => {
     const fetchData = async () => {
-      // Get student session
-      const meRes = await fetch('/api/student/me')
-      if (meRes.ok) {
-        const meData = await meRes.json()
-        setStudentId(meData.id)
-      }
-
-      // Get text info
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) setStudentId(user.id)
       const { data } = await supabase.from('texts').select('*').eq('id', textId).single()
       if (data) setText(data)
     }

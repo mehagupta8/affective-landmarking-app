@@ -22,7 +22,7 @@ export default function LandingPage() {
         <p className="text-warm-grey mb-10 text-lg leading-relaxed h-12">
           Join a class, manage assignments, and track your progress.
         </p>
-        <Link href="/student/dashboard" className="w-full">
+        <Link href="/student/login" className="w-full">
           <PillButton className="w-full py-4 text-xl">Student Portal</PillButton>
         </Link>
       </GlassCard>
