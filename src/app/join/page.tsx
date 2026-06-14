@@ -55,6 +55,10 @@ export default function JoinPage() {
     setLoading(true)
     setError(null)
 
+    // Sign out any existing student/teacher session so the annotate page
+    // serves the guest experience instead of the logged-in user's data.
+    await supabase.auth.signOut()
+
     const res = await fetch('/api/guest/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
