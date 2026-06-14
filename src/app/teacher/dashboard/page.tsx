@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, BookOpen, Users, Loader2, Settings2, X, Calendar } from 'lucide-react'
+import { Plus, BookOpen, Users, Loader2, Settings2, X, Calendar, AlertCircle } from 'lucide-react'
 import { Class } from '@/types/database'
 import { generateClassCode } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [editingClass, setEditingClass] = useState<Class | null>(null)
   const [editFormData, setEditFormData] = useState({ name: '', due_date: '' })
   const [saving, setSaving] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const router = useRouter()
 
@@ -53,23 +54,30 @@ export default function Dashboard() {
     void fetchClasses()
   }, [fetchClasses])
 
-  const handleCreateClass = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleCreateClass = async (e?: FormEvent | React.MouseEvent) => {
+    e?.preventDefault()
+    if (!newClassName.trim()) return
     setCreating(true)
+    setCreateError(null)
     const { data: userData } = await supabase.auth.getUser()
     const user = userData?.user
-    if (!user) return
+    if (!user) {
+      router.push('/teacher/login')
+      return
+    }
     const classCode = generateClassCode()
     const { data, error } = await supabase
       .from('classes')
-      .insert([{ 
-        name: newClassName, 
-        teacher_id: user.id, 
+      .insert([{
+        name: newClassName.trim(),
+        teacher_id: user.id,
         class_code: classCode,
         due_date: newClassDueDate ? new Date(newClassDueDate).toISOString() : null
       }])
       .select()
-    if (!error && data) {
+    if (error) {
+      setCreateError(error.message)
+    } else if (data) {
       setNewClassName('')
       setNewClassDueDate('')
       setClasses([data[0], ...classes])
@@ -124,33 +132,39 @@ export default function Dashboard() {
           <p className="text-warm-grey text-xl font-light">Manage your active classes and view student progress.</p>
         </div>
 
-        <GlassCard className="p-6 flex flex-col gap-6 min-w-[450px] shadow-lg border-white/40">
-          <div className="flex gap-4 items-center">
+        <GlassCard className="p-6 flex flex-col gap-4 w-full md:min-w-[400px] md:w-auto shadow-lg border-white/40">
+          {createError && (
+            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50/30 border border-red-100 px-4 py-2 rounded-xl">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {createError}
+            </div>
+          )}
+          <form onSubmit={handleCreateClass} className="flex gap-4 items-center">
             <input
               type="text"
               placeholder="Class name (e.g. English 101)"
               value={newClassName}
               onChange={(e) => setNewClassName(e.target.value)}
-              className="flex-1 bg-white/30 border-none rounded-full px-8 py-4 text-charcoal placeholder:text-warm-grey/40 focus:ring-2 focus:ring-terracotta/20 outline-none text-lg transition-all"
+              className="flex-1 bg-white/30 border-none rounded-full px-6 py-4 text-charcoal placeholder:text-warm-grey/40 focus:ring-2 focus:ring-terracotta/20 outline-none text-lg transition-all min-w-0"
               required
             />
             <PillButton
-              onClick={handleCreateClass}
-              disabled={creating || !newClassName}
-              className="py-4 px-8 shrink-0 flex items-center justify-center min-w-[60px]"
+              type="submit"
+              disabled={creating || !newClassName.trim()}
+              className="py-4 px-6 shrink-0 flex items-center justify-center"
             >
               {creating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
             </PillButton>
-          </div>
-          <div className="flex items-center gap-4 px-4">
-            <Calendar className="w-4 h-4 text-terracotta/40" />
-            <input 
+          </form>
+          <div className="flex items-center gap-4 px-2">
+            <Calendar className="w-4 h-4 text-terracotta/40 shrink-0" />
+            <input
               type="datetime-local"
               value={newClassDueDate}
               onChange={(e) => setNewClassDueDate(e.target.value)}
-              className="bg-transparent border-none text-sm text-charcoal/60 outline-none"
+              className="bg-transparent border-none text-sm text-charcoal/60 outline-none min-w-0 flex-1"
             />
-            <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest ml-auto">Optional Class Deadline</span>
+            <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-widest hidden md:block">Optional Deadline</span>
           </div>
         </GlassCard>
       </div>
