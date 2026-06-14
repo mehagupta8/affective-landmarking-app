@@ -4,18 +4,23 @@ import { useState, useEffect, use, useCallback, FormEvent } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  ChevronLeft, 
-  Plus, 
-  BookOpen, 
-  Users, 
-  BarChart2, 
-  Loader2, 
+import {
+  ChevronLeft,
+  Plus,
+  BookOpen,
+  Users,
+  BarChart2,
+  Loader2,
   AlertTriangle,
   FileText,
   TrendingUp,
   CheckCircle2,
-  Mail
+  Mail,
+  Settings,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  AlertCircle
 } from 'lucide-react'
 import { Class, Text, StudentProfile, Annotation } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -30,7 +35,12 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   const [students, setStudents] = useState<StudentProfile[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'texts' | 'students' | 'progress'>('texts')
+  const [activeTab, setActiveTab] = useState<'texts' | 'students' | 'progress' | 'manage'>('texts')
+
+  // Manage tab state
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
+  const [deletingClass, setDeletingClass] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   
   // New Text Form State
   const [isAddingText, setIsAddingText] = useState(false)
@@ -162,6 +172,35 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const handleRemoveStudent = async (studentId: string) => {
+    setRemovingStudentId(studentId)
+    const { error } = await supabase
+      .from('class_enrollments')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('class_id', classId)
+
+    if (!error) {
+      setStudents(students.filter(s => s.id !== studentId))
+    }
+    setRemovingStudentId(null)
+  }
+
+  const handleDeleteClass = async () => {
+    setDeletingClass(true)
+    const { error } = await supabase
+      .from('classes')
+      .delete()
+      .eq('id', classId)
+
+    if (!error) {
+      router.push('/teacher/dashboard')
+    } else {
+      setDeletingClass(false)
+      setConfirmDelete(false)
+    }
+  }
+
   const calculateStudentProgress = (studentId: string, textId: string) => {
     const studentAnns = annotations.filter(a => a.student_id === studentId && a.text_id === textId)
     const text = texts.find(t => t.id === textId)
@@ -219,15 +258,16 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       </header>
 
       {/* Tabs */}
-      <div className="flex gap-10 border-b border-charcoal/5 mb-8">
+      <div className="flex flex-wrap gap-6 md:gap-10 border-b border-charcoal/5 mb-8">
         {[
           { id: 'texts', label: 'Texts', count: texts.length, icon: BookOpen },
           { id: 'students', label: 'Students', count: students.length, icon: Users },
-          { id: 'progress', label: 'Student Progress', count: students.length, icon: TrendingUp }
+          { id: 'progress', label: 'Progress', count: students.length, icon: TrendingUp },
+          { id: 'manage', label: 'Manage', count: null, icon: Settings }
         ].map(tab => (
-          <button 
+          <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as 'texts' | 'students' | 'progress')}
+            onClick={() => setActiveTab(tab.id as 'texts' | 'students' | 'progress' | 'manage')}
             className={cn(
               "pb-6 px-2 text-lg transition-all relative",
               activeTab === tab.id ? "text-charcoal" : "text-warm-grey hover:text-charcoal opacity-60"
@@ -235,7 +275,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
           >
             <div className="flex items-center gap-3">
               <tab.icon className={cn("w-5 h-5", activeTab === tab.id && "text-terracotta")} />
-              {tab.label} ({tab.count})
+              {tab.label}{tab.count !== null ? ` (${tab.count})` : ''}
             </div>
             {activeTab === tab.id && (
               <div className="absolute bottom-0 left-0 w-full h-0.5 bg-terracotta rounded-full animate-in fade-in duration-500" />
@@ -470,7 +510,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
             </table>
           </GlassCard>
         </div>
-      ) : (
+      ) : activeTab === 'progress' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="flex justify-between items-center">
             <h2 className="text-4xl text-charcoal font-light">Engagement Overview</h2>
@@ -537,7 +577,118 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
             )}
           </div>
         </div>
-      )}
+      ) : activeTab === 'manage' ? (
+        /* ── Manage Tab ───────────────────────────────────────────────── */
+        <div className="space-y-10 animate-in fade-in duration-500">
+
+          {/* Manage Students */}
+          <section className="space-y-6">
+            <h2 className="text-3xl text-charcoal font-light flex items-center gap-3">
+              <Users className="w-6 h-6 text-terracotta/60" />
+              Manage Students
+            </h2>
+
+            {/* Add student info */}
+            <GlassCard className="p-8 border-white/40 space-y-4">
+              <div className="flex items-start gap-3">
+                <UserPlus className="w-5 h-5 text-terracotta/60 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-charcoal font-medium">Add a student</p>
+                  <p className="text-warm-grey text-sm">
+                    Share the class code <span className="font-mono font-bold text-terracotta bg-terracotta/5 px-2 py-0.5 rounded-lg">{cls.class_code}</span> with students. They can join from their dashboard at <span className="font-medium">/student/dashboard</span>.
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Enrolled students with remove */}
+            <GlassCard className="p-0 border-white/40 overflow-hidden">
+              <div className="bg-white/40 border-b border-white/60 px-8 py-4 flex items-center justify-between">
+                <span className="text-sm font-bold text-warm-grey/60 uppercase tracking-widest">
+                  {students.length} Enrolled Student{students.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              {students.length === 0 ? (
+                <div className="px-8 py-16 text-center text-warm-grey font-light opacity-60">
+                  No students enrolled yet.
+                </div>
+              ) : (
+                <ul className="divide-y divide-white/20">
+                  {students.map(student => (
+                    <li key={student.id} className="flex items-center justify-between px-8 py-5 hover:bg-white/20 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-9 h-9 rounded-full bg-terracotta/10 border border-terracotta/20 flex items-center justify-center text-terracotta font-bold text-sm">
+                          {student.first_name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-charcoal font-medium">{student.first_name} {student.last_name}</p>
+                          <p className="text-xs text-warm-grey/50">Joined {new Date(student.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveStudent(student.id)}
+                        disabled={removingStudentId === student.id}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-warm-grey/50 hover:text-red-500 hover:bg-red-50/30 rounded-full transition-all disabled:opacity-40"
+                      >
+                        {removingStudentId === student.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <UserMinus className="w-4 h-4" />
+                        }
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </GlassCard>
+          </section>
+
+          {/* Danger Zone */}
+          <section className="space-y-6">
+            <h2 className="text-3xl text-charcoal font-light flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-400/80" />
+              Danger Zone
+            </h2>
+            <GlassCard className="p-8 border-red-100/40 bg-red-50/10 space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1">
+                  <p className="text-charcoal font-medium">Delete this class</p>
+                  <p className="text-warm-grey/70 text-sm">
+                    Permanently deletes the class, all its texts, and all student annotations. This cannot be undone.
+                  </p>
+                </div>
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="shrink-0 flex items-center gap-2 px-6 py-3 rounded-full border border-red-200 text-red-500 bg-red-50/30 hover:bg-red-100/40 transition-all text-sm font-medium"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Class
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-3 shrink-0">
+                    <p className="text-red-500 text-sm font-medium">Are you sure?</p>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="px-5 py-2.5 rounded-full border border-charcoal/10 text-warm-grey hover:bg-white/60 transition-all text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteClass}
+                      disabled={deletingClass}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all text-sm font-medium disabled:opacity-50"
+                    >
+                      {deletingClass ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      Yes, delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+          </section>
+        </div>
+      ) : null}
     </div>
   )
 }
