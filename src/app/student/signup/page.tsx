@@ -81,7 +81,7 @@ export default function StudentSignupPage() {
 
   return (
     <div className="min-h-screen atmospheric-bg flex items-center justify-center p-6">
-      <GlassCard className="max-w-md w-full p-12 shadow-2xl border-white/40 animate-in fade-in zoom-in duration-700">
+      <GlassCard className="max-w-md w-full p-6 md:p-12 shadow-2xl border-white/40 animate-in fade-in zoom-in duration-700">
         <div className="flex flex-col items-center mb-10">
           <Orb size="md" className="mb-6 shadow-[0_0_20px_rgba(232,155,108,0.3)]" />
           <h1 className="text-3xl font-normal text-charcoal text-center">Create Student Account</h1>

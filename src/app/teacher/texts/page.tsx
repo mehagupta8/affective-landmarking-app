@@ -171,7 +171,7 @@ export default function TextsPage() {
   return (
     <div className="space-y-12 animate-in fade-in duration-1000">
       <div className="space-y-3">
-        <h1 className="text-6xl font-normal text-charcoal">All Texts</h1>
+        <h1 className="text-3xl md:text-6xl font-normal text-charcoal">All Texts</h1>
         <p className="text-warm-grey text-xl font-light">A unified view of all literary pieces across your classes.</p>
       </div>
 

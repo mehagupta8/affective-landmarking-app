@@ -120,7 +120,7 @@ export default function Dashboard() {
     <div className="space-y-16 animate-in fade-in duration-1000">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="space-y-3">
-          <h1 className="text-6xl font-normal text-charcoal">Your Classes</h1>
+          <h1 className="text-3xl md:text-6xl font-normal text-charcoal">Your Classes</h1>
           <p className="text-warm-grey text-xl font-light">Manage your active classes and view student progress.</p>
         </div>
 
