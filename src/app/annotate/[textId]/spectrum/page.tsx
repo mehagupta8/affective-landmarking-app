@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Loader2, Users, PieChart, Layout } from 'lucide-react'
-import { Text, Annotation, Student } from '@/types/database'
+import { Text, Annotation, StudentProfile } from '@/types/database'
 import SpectrumVisualizer from '@/components/viz/SpectrumVisualizer'
 import StatsDashboard from '@/components/viz/StatsDashboard'
 import { cn } from '@/lib/utils'
@@ -14,7 +14,7 @@ export default function StudentSpectrumPage({ params }: { params: Promise<{ text
   const { textId } = use(params)
   const [text, setText] = useState<Text | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<StudentProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'spectrum' | 'stats'>('spectrum')
 
@@ -29,15 +29,15 @@ export default function StudentSpectrumPage({ params }: { params: Promise<{ text
       
       if (!textData) return
 
-      // 2. Fetch all annotations and students for this class text
-      const [annRes, studentRes] = await Promise.all([
+      // 2. Fetch all annotations and enrolled student profiles for this class
+      const [annRes, enrollRes] = await Promise.all([
         supabase.from('annotations').select('*').eq('text_id', textId),
-        supabase.from('students').select('*').eq('class_id', textData.class_id)
+        supabase.from('class_enrollments').select('student_profiles(*)').eq('class_id', textData.class_id)
       ])
 
       setText(textData)
       setAnnotations(annRes.data || [])
-      setStudents(studentRes.data || [])
+      setStudents((enrollRes.data || []).map((e: any) => e.student_profiles).filter(Boolean))
     } catch (err) {
       console.error(err)
     } finally {

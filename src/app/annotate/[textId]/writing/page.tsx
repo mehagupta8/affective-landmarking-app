@@ -15,7 +15,7 @@ import {
   Quote,
   RefreshCw
 } from 'lucide-react'
-import { Text, Annotation, Student, RasaLabel, RASA_CONFIGS } from '@/types/database'
+import { Text, Annotation, StudentProfile, RasaLabel, RASA_CONFIGS } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Orb } from '@/components/ui/Orb'
@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils'
 export default function WritingActivityPage({ params }: { params: Promise<{ textId: string }> }) {
   const { textId } = use(params)
   const [text, setText] = useState<Text | null>(null)
-  const [student, setStudent] = useState<Student | null>(null)
+  const [student, setStudent] = useState<StudentProfile | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -40,25 +40,21 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
 
   const fetchData = useCallback(async () => {
     try {
-      const meRes = await fetch('/api/student/me')
-      if (!meRes.ok) {
-        router.push('/join')
-        return
-      }
-      const meData = await meRes.json()
-      setStudent(meData)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/student/login'); return }
 
-      // Fetch Text and Annotations
+      const { data: prof } = await supabase
+        .from('student_profiles').select('*').eq('id', user.id).single()
+      if (!prof) { router.push('/student/login'); return }
+      setStudent(prof)
+
       const [textRes, annRes, subRes] = await Promise.all([
         supabase.from('texts').select('*').eq('id', textId).single(),
-        supabase.from('annotations').select('*').eq('text_id', textId).eq('student_id', meData.id),
-        supabase.from('writing_submissions').select('*').eq('text_id', textId).eq('student_id', meData.id).single()
+        supabase.from('annotations').select('*').eq('text_id', textId).eq('student_id', user.id),
+        supabase.from('writing_submissions').select('*').eq('text_id', textId).eq('student_id', user.id).single()
       ])
 
-      if (subRes.data) {
-        setStep('success')
-      }
-
+      if (subRes.data) setStep('success')
       setText(textRes.data)
       setAnnotations(annRes.data || [])
     } catch (err) {

@@ -88,3 +88,20 @@ export interface TeacherProfile {
   created_at: string;
   updated_at: string;
 }
+
+export interface StudentProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClassEnrollment {
+  id: string;
+  student_id: string;
+  class_id: string;
+  joined_at: string;
+  last_active_at: string | null;
+  submitted_texts: string[] | null;
+}

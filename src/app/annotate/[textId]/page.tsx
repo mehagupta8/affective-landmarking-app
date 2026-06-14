@@ -13,7 +13,7 @@ import {
   Send,
   AlertTriangle
 } from 'lucide-react'
-import { Text, Student, Annotation, RASA_CONFIGS, RasaLabel } from '@/types/database'
+import { Text, StudentProfile, Annotation, RASA_CONFIGS, RasaLabel } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { Orb } from '@/components/ui/Orb'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -26,7 +26,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   const router = useRouter()
 
   const [text, setText] = useState<Text | null>(null)
-  const [student, setStudent] = useState<Student | null>(null)
+  const [student, setStudent] = useState<StudentProfile | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
   const [showTriggerWarning, setShowTriggerWarning] = useState(false)
@@ -74,44 +74,31 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
   const fetchInitialData = useCallback(async () => {
     try {
-      // 1. Fetch current student from session
-      const meRes = await fetch('/api/student/me')
-      if (!meRes.ok) {
-        router.push('/join')
-        return
-      }
-      const meData = await meRes.json()
-      setStudent(meData)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/student/login'); return }
 
-      // 2. Fetch text and existing annotations
-      const [textRes, annRes] = await Promise.all([
+      const { data: prof } = await supabase
+        .from('student_profiles').select('*').eq('id', user.id).single()
+      if (!prof) { router.push('/student/login'); return }
+      setStudent(prof)
+
+      const [textRes, annRes, enrollRes] = await Promise.all([
         supabase.from('texts').select('*').eq('id', textId).single(),
-        supabase.from('annotations').select('*').eq('text_id', textId).eq('student_id', meData.id)
+        supabase.from('annotations').select('*').eq('text_id', textId).eq('student_id', user.id),
+        supabase.from('class_enrollments').select('submitted_texts').eq('student_id', user.id)
       ])
 
-      if (textRes.error || !textRes.data) {
-        router.push('/join')
-        return
-      }
+      if (textRes.error || !textRes.data) { router.push('/student/dashboard'); return }
 
       setText(textRes.data)
       setAnnotations(annRes.data || [])
-      
-      const { data: currentStudent } = await supabase
-        .from('students')
-        .select('submitted_texts')
-        .eq('id', meData.id)
-        .single()
-      
-      if (currentStudent?.submitted_texts?.includes(textId)) {
-        setIsSubmitted(true)
-      }
 
-      if (textRes.data.trigger_warning) {
-        setShowTriggerWarning(true)
-      }
+      const allSubmitted = (enrollRes.data || []).flatMap((e: any) => e.submitted_texts || [])
+      if (allSubmitted.includes(textId)) setIsSubmitted(true)
+
+      if (textRes.data.trigger_warning) setShowTriggerWarning(true)
     } catch {
-      router.push('/join')
+      router.push('/student/login')
     } finally {
       setLoading(false)
     }
@@ -188,23 +175,30 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   const handleSubmit = async () => {
     if (!student || !textId || isLocked) return
     setSubmitting(true)
-    
-    const { data: current } = await supabase
-      .from('students')
-      .select('submitted_texts')
-      .eq('id', student.id)
+
+    // Find the enrollment for the class this text belongs to
+    const { data: textData } = await supabase.from('texts').select('class_id').eq('id', textId).single()
+    if (!textData) { setSubmitting(false); return }
+
+    const { data: enrollment } = await supabase
+      .from('class_enrollments')
+      .select('id, submitted_texts')
+      .eq('student_id', student.id)
+      .eq('class_id', textData.class_id)
       .single()
-    
-    const submitted = current?.submitted_texts || []
-    if (!submitted.includes(textId)) {
-      const { error } = await supabase
-        .from('students')
-        .update({ submitted_texts: [...submitted, textId] })
-        .eq('id', student.id)
-      
-      if (!error) {
-        setIsSubmitted(true)
-        router.push(`/annotate/${textId}/submitted`)
+
+    if (enrollment) {
+      const submitted = enrollment.submitted_texts || []
+      if (!submitted.includes(textId)) {
+        const { error } = await supabase
+          .from('class_enrollments')
+          .update({ submitted_texts: [...submitted, textId] })
+          .eq('id', enrollment.id)
+
+        if (!error) {
+          setIsSubmitted(true)
+          router.push(`/annotate/${textId}/submitted`)
+        }
       }
     }
     setSubmitting(false)
