@@ -196,8 +196,8 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen atmospheric-bg py-12 px-8">
-      <div className="max-w-6xl mx-auto space-y-12">
+    <div className="min-h-screen atmospheric-bg py-6 px-4 md:py-12 md:px-8">
+      <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
@@ -205,7 +205,7 @@ export default function StudentDashboard() {
               <Orb size="sm" />
               <span className="text-[12px] font-black text-terracotta uppercase tracking-[0.3em]">Student Portal</span>
             </div>
-            <h1 className="text-6xl font-normal text-charcoal">
+            <h1 className="text-3xl md:text-6xl font-normal text-charcoal">
               Welcome, {profile?.first_name}
             </h1>
           </div>
@@ -271,7 +271,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-12">
           {/* Text list */}
           <div className="lg:col-span-2 space-y-8">
             <div className="flex justify-between items-center">

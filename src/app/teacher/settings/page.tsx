@@ -67,7 +67,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-12 animate-in fade-in duration-1000">
       <div className="space-y-3">
-        <h1 className="text-6xl font-normal text-charcoal">Settings</h1>
+        <h1 className="text-3xl md:text-6xl font-normal text-charcoal">Settings</h1>
         <p className="text-warm-grey text-xl font-light">Customize your teaching environment and account preferences.</p>
       </div>
 

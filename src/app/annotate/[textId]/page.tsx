@@ -279,10 +279,10 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
   )
 
   return (
-    <div className="min-h-screen atmospheric-bg flex flex-col items-center py-12 px-6 relative">
-      {/* Progress Bar (Fixed Bottom Left) */}
-      <div className="fixed bottom-8 left-8 z-50 w-full max-w-sm animate-in slide-in-from-left-8 duration-1000">
-        <GlassCard className="p-6 shadow-2xl border-white/60 backdrop-blur-2xl">
+    <div className="min-h-screen atmospheric-bg flex flex-col items-center py-6 md:py-12 px-3 md:px-6 relative">
+      {/* Progress Bar — bottom full-width on mobile, bottom-left card on desktop */}
+      <div className="fixed bottom-0 left-0 right-0 md:bottom-8 md:left-8 md:right-auto z-50 w-full md:max-w-sm animate-in slide-in-from-bottom duration-700 md:slide-in-from-left-8 md:duration-1000">
+        <GlassCard className="p-4 md:p-6 shadow-2xl border-white/60 backdrop-blur-2xl rounded-none md:rounded-2xl">
           <div className="flex justify-between items-end mb-3">
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-terracotta uppercase tracking-[0.2em] mb-1">Your Progress</span>
