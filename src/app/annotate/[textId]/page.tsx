@@ -153,8 +153,14 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
     })
   }
 
+  // iOS/Android finalize selection after touchend; a short delay lets the
+  // browser commit the selection before we read it.
+  const handleTouchEnd = () => {
+    setTimeout(handleMouseUp, 50)
+  }
+
   const createAnnotation = async (label: RasaLabel) => {
-    if (!selection || !student || !textId || isLocked) return
+    if (!selection || (!student && !guest) || !textId || isLocked) return
     
     setSaving(true)
     const { data, error } = await supabase
@@ -437,14 +443,14 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           </div>
         )}
 
-        <div className="bg-[#FDFBF7] px-16 py-24 shadow-[0_4px_40px_rgba(0,0,0,0.02)] rounded-sm relative">
-          <header className="mb-16 space-y-8">
+        <div className="bg-[#FDFBF7] px-4 py-8 md:px-16 md:py-24 shadow-[0_4px_40px_rgba(0,0,0,0.02)] rounded-sm relative">
+          <header className="mb-8 md:mb-16 space-y-6 md:space-y-8">
             <div className="space-y-2">
-              <h1 className="text-5xl font-normal text-charcoal leading-tight">
+              <h1 className="text-3xl md:text-5xl font-normal text-charcoal leading-tight">
                 {text?.title}
               </h1>
               {text?.author && (
-                <p className="text-2xl text-warm-grey font-light">by {text.author}</p>
+                <p className="text-lg md:text-2xl text-warm-grey font-light">by {text.author}</p>
               )}
             </div>
 
@@ -478,11 +484,12 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
             )}
           </header>
           
-          <div 
+          <div
             ref={textRef}
             onMouseUp={handleMouseUp}
+            onTouchEnd={handleTouchEnd}
             className={cn(
-              "text-xl leading-[1.8] text-charcoal/90 whitespace-pre-wrap selection:bg-terracotta/20 font-light",
+              "text-base md:text-xl leading-[1.8] text-charcoal/90 whitespace-pre-wrap selection:bg-terracotta/20 font-light",
               isLocked ? "cursor-default" : "cursor-text"
             )}
           >
@@ -492,11 +499,19 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
         {/* Floating Palette */}
         {selection && mainRef.current && (
-          <div 
-            className="absolute z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
-            style={{ 
-              top: selection.rect.top + window.scrollY - mainRef.current.offsetTop, 
-              left: selection.rect.left + (selection.rect.width / 2) - mainRef.current.offsetLeft
+          <div
+            className="absolute z-40 transform -translate-x-1/2 animate-in fade-in zoom-in duration-300"
+            style={{
+              // On narrow screens appear below selection; on wide screens appear above
+              top: window.innerWidth < 640
+                ? selection.rect.bottom + window.scrollY - mainRef.current.offsetTop + 8
+                : selection.rect.top + window.scrollY - mainRef.current.offsetTop - 8,
+              [window.innerWidth < 640 ? 'marginTop' : 'transform']: window.innerWidth < 640 ? 0 : 'translateY(-110%)',
+              // Clamp so the 220px palette never overflows the main container on narrow screens
+              left: Math.max(110, Math.min(
+                mainRef.current.clientWidth - 110,
+                selection.rect.left + (selection.rect.width / 2) - mainRef.current.offsetLeft
+              ))
             }}
           >
             <GlassCard className="w-[220px] p-2 flex flex-col shadow-2xl border-white/60">
@@ -532,11 +547,14 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
 
         {/* Management Palette (for existing highlights) */}
         {activeGroup && mainRef.current && (
-          <div 
+          <div
             className="absolute z-40 transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-300"
-            style={{ 
-              top: activeGroup.rect.top + window.scrollY - mainRef.current.offsetTop, 
-              left: activeGroup.rect.left + (activeGroup.rect.width / 2) - mainRef.current.offsetLeft
+            style={{
+              top: activeGroup.rect.top + window.scrollY - mainRef.current.offsetTop,
+              left: Math.max(110, Math.min(
+                mainRef.current.clientWidth - 110,
+                activeGroup.rect.left + (activeGroup.rect.width / 2) - mainRef.current.offsetLeft
+              ))
             }}
           >
             <GlassCard className="w-[220px] p-2 flex flex-col shadow-2xl border-white/60">
