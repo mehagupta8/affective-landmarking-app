@@ -50,7 +50,20 @@ export default function StudentSignupPage() {
     }
 
     if (data.user) {
-      // Create student profile immediately
+      // Block teachers from creating a student account
+      const { data: teacherProfile } = await supabase
+        .from('teacher_profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      if (teacherProfile) {
+        await supabase.auth.signOut()
+        setError('This email belongs to a teacher account. Please use the teacher login page.')
+        setLoading(false)
+        return
+      }
+
       const { error: profileError } = await supabase
         .from('student_profiles')
         .insert({
