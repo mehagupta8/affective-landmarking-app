@@ -15,7 +15,7 @@ import {
   Quote,
   RefreshCw
 } from 'lucide-react'
-import { Text, Annotation, StudentProfile, RasaLabel, RASA_CONFIGS } from '@/types/database'
+import { Text, Annotation, StudentProfile, EmotionLabel, EMOTION_CONFIGS } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Orb } from '@/components/ui/Orb'
@@ -33,7 +33,7 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
   const [step, setStep] = useState<'selection' | 'drafting' | 'success'>('selection')
   const [promptType, setPromptType] = useState<'choice' | 'random' | null>(null)
   const [selectedAnns, setSelectedAnns] = useState<Annotation[]>([])
-  const [randomEmotion, setRandomEmotion] = useState<RasaLabel | null>(null)
+  const [randomEmotion, setRandomEmotion] = useState<EmotionLabel | null>(null)
   const [writingContent, setWritingContent] = useState('')
 
   const router = useRouter()
@@ -70,7 +70,7 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
 
   const handleRandomize = () => {
     const usedEmotions = Array.from(new Set(annotations.map(a => a.rasa_label)))
-    const pool = usedEmotions.length > 0 ? usedEmotions : (Object.keys(RASA_CONFIGS) as RasaLabel[])
+    const pool = usedEmotions.length > 0 ? usedEmotions : (Object.keys(EMOTION_CONFIGS) as EmotionLabel[])
     const random = pool[Math.floor(Math.random() * pool.length)]
     setRandomEmotion(random)
     setPromptType('random')
@@ -176,8 +176,8 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                           )}
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: RASA_CONFIGS[ann.rasa_label].color }} />
-                            <span className="text-[8px] font-black uppercase tracking-widest">{RASA_CONFIGS[ann.rasa_label].name}</span>
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: EMOTION_CONFIGS[ann.rasa_label].color }} />
+                            <span className="text-[8px] font-black uppercase tracking-widest">{EMOTION_CONFIGS[ann.rasa_label].name}</span>
                           </div>
                           &quot;{text.content.substring(ann.start_offset, ann.end_offset).substring(0, 120)}...&quot;
                         </button>
@@ -201,7 +201,7 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                 <div className="space-y-2">
                   <h3 className="text-2xl text-charcoal">Random Affect</h3>
                   <p className="text-sm text-warm-grey leading-relaxed">
-                    Let the app pick an emotion for you. You&apos;ll write about a moment where you felt this Rasa (or why you didn&apos;t feel it).
+                    Let the app pick an emotion for you. You&apos;ll write about a moment where you felt this emotion (or why you didn&apos;t feel it).
                   </p>
                 </div>
                 <div className="flex-1" />
@@ -210,7 +210,7 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                   className="w-full py-4 flex items-center justify-center gap-3"
                 >
                   <RefreshCw className="w-5 h-5" />
-                  Spin the Rasa Wheel
+                  Spin the Emotion Wheel
                 </PillButton>
               </GlassCard>
             </div>
@@ -225,8 +225,8 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                 <span className="text-sm text-warm-grey">Writing through the lens of</span>
                 {promptType === 'random' ? (
                   <span className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-charcoal/5 shadow-sm text-sm font-bold text-charcoal">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: RASA_CONFIGS[randomEmotion!].color }} />
-                    {RASA_CONFIGS[randomEmotion!].name}
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: EMOTION_CONFIGS[randomEmotion!].color }} />
+                    {EMOTION_CONFIGS[randomEmotion!].name}
                   </span>
                 ) : (
                   <span className="text-sm font-bold text-charcoal">Your Selection</span>
@@ -241,9 +241,9 @@ export default function WritingActivityPage({ params }: { params: Promise<{ text
                   {selectedAnns.length > 0 ? (
                     selectedAnns.map(ann => (
                       <div key={ann.id} className="bg-white/40 p-6 rounded-3xl border border-white/60 space-y-3 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: RASA_CONFIGS[ann.rasa_label].color }} />
+                        <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: EMOTION_CONFIGS[ann.rasa_label].color }} />
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-charcoal/40">{RASA_CONFIGS[ann.rasa_label].name}</span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-charcoal/40">{EMOTION_CONFIGS[ann.rasa_label].name}</span>
                         </div>
                         <p className="text-sm text-charcoal leading-relaxed font-serif italic">
                           &quot;{text.content.substring(ann.start_offset, ann.end_offset)}&quot;

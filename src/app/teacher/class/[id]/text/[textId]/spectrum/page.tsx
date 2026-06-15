@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Loader2, Info, PieChart, Layout, Quote, MessageSquare } from 'lucide-react'
-import { Class, Text, StudentProfile, Annotation, WritingSubmission, RASA_CONFIGS } from '@/types/database'
+import { Class, Text, StudentProfile, Annotation, WritingSubmission, EMOTION_CONFIGS } from '@/types/database'
 import SpectrumVisualizer from '@/components/viz/SpectrumVisualizer'
 import StatsDashboard from '@/components/viz/StatsDashboard'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -180,15 +180,15 @@ export default function SpectrumPage({ params }: { params: Promise<{ id: string,
                           {sub.selected_emotion ? (
                             <div className="bg-white/40 p-4 rounded-2xl border border-white/60">
                                <div className="flex items-center gap-2 mb-2">
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: RASA_CONFIGS[sub.selected_emotion].color }} />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-charcoal">{RASA_CONFIGS[sub.selected_emotion].name}</span>
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: EMOTION_CONFIGS[sub.selected_emotion].color }} />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-charcoal">{EMOTION_CONFIGS[sub.selected_emotion].name}</span>
                               </div>
-                              <p className="text-xs text-warm-grey leading-relaxed">Analyzing through the lens of {RASA_CONFIGS[sub.selected_emotion].name}.</p>
+                              <p className="text-xs text-warm-grey leading-relaxed">Analyzing through the lens of {EMOTION_CONFIGS[sub.selected_emotion].name}.</p>
                             </div>
                           ) : subAnns.length > 0 ? (
                             subAnns.map(ann => (
                               <div key={ann.id} className="bg-white/40 p-4 rounded-2xl border border-white/60 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: RASA_CONFIGS[ann.rasa_label].color }} />
+                                <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: EMOTION_CONFIGS[ann.rasa_label].color }} />
                                 <p className="text-xs text-charcoal leading-relaxed font-serif italic">
                                   &quot;{text.content.substring(ann.start_offset, ann.end_offset)}&quot;
                                 </p>

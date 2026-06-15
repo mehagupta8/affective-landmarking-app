@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { RASA_CONFIGS, Annotation } from '@/types/database'
+import { EMOTION_CONFIGS, Annotation } from '@/types/database'
 
 interface MiniSpectrumProps {
   textLength: number
@@ -33,7 +33,7 @@ export function MiniSpectrum({ textLength, annotations, height = 24, className }
             y={0}
             width={ann.end_offset - ann.start_offset}
             height={height}
-            fill={RASA_CONFIGS[ann.rasa_label].color}
+            fill={EMOTION_CONFIGS[ann.rasa_label].color}
             style={{ mixBlendMode: 'multiply' }}
             className="opacity-80"
           />

@@ -1,7 +1,7 @@
-import { Annotation, RasaLabel, RASA_CONFIGS } from '@/types/database'
+import { Annotation, EmotionLabel, EMOTION_CONFIGS } from '@/types/database'
 
 export interface EmotionCoverage {
-  label: RasaLabel
+  label: EmotionLabel
   name: string
   color: string
   textCoverage: number // % of text covered by this emotion
@@ -11,13 +11,13 @@ export interface EmotionCoverage {
 
 export interface PositionalSpike {
   binIndex: number
-  emotions: RasaLabel[]
+  emotions: EmotionLabel[]
   intensity: number // coverage in this bin vs average
 }
 
 export interface CoOccurrence {
-  emotionA: RasaLabel
-  emotionB: RasaLabel
+  emotionA: EmotionLabel
+  emotionB: EmotionLabel
   overlapCharacters: number
   overlapPercentage: number // % of A that overlaps with B
 }
@@ -26,7 +26,7 @@ export interface ContestedSegment {
   start: number
   end: number
   diversityIndex: number
-  labels: { label: RasaLabel, count: number }[]
+  labels: { label: EmotionLabel, count: number }[]
   annotations: Annotation[]
 }
 
@@ -47,7 +47,7 @@ export class AffectiveStats {
 
     let totalUniqueCoverageAcrossAll = 0
 
-    const labels = Object.keys(RASA_CONFIGS) as RasaLabel[]
+    const labels = Object.keys(EMOTION_CONFIGS) as EmotionLabel[]
     
     const results = labels.map(label => {
       const labelAnns = this.annotations.filter(a => a.rasa_label === label)
@@ -58,8 +58,8 @@ export class AffectiveStats {
       
       return {
         label,
-        name: RASA_CONFIGS[label].name,
-        color: RASA_CONFIGS[label].color,
+        name: EMOTION_CONFIGS[label].name,
+        color: EMOTION_CONFIGS[label].color,
         uniqueCharacterCount: uniqueCount,
         textCoverage: (uniqueCount / this.textLength) * 100,
         totalAffectShare: 0 // Will calculate in second pass
@@ -76,7 +76,7 @@ export class AffectiveStats {
   getPositionalSpikes(binCount: number = 10): PositionalSpike[] {
     if (this.textLength === 0) return []
     const binSize = this.textLength / binCount
-    const labels = Object.keys(RASA_CONFIGS) as RasaLabel[]
+    const labels = Object.keys(EMOTION_CONFIGS) as EmotionLabel[]
     
     // Calculate global averages per label
     const distribution = this.getDistribution()
@@ -87,7 +87,7 @@ export class AffectiveStats {
     for (let i = 0; i < binCount; i++) {
       const binStart = i * binSize
       const binEnd = (i + 1) * binSize
-      const binEmotions: RasaLabel[] = []
+      const binEmotions: EmotionLabel[] = []
       let maxIntensity = 0
 
       labels.forEach(label => {
@@ -112,7 +112,7 @@ export class AffectiveStats {
 
   // 3. Co-occurrence Matrix (Top 5)
   getTopCoOccurrences(): CoOccurrence[] {
-    const labels = Object.keys(RASA_CONFIGS) as RasaLabel[]
+    const labels = Object.keys(EMOTION_CONFIGS) as EmotionLabel[]
     const results: CoOccurrence[] = []
 
     for (let i = 0; i < labels.length; i++) {
@@ -201,7 +201,7 @@ export class AffectiveStats {
           start,
           end,
           diversityIndex: diversity,
-          labels: Object.entries(labelCounts).map(([l, c]) => ({ label: l as RasaLabel, count: c })),
+          labels: Object.entries(labelCounts).map(([l, c]) => ({ label: l as EmotionLabel, count: c })),
           annotations: segmentAnns
         })
       }

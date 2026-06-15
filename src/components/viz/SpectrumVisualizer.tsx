@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useMemo } from 'react'
-import { RASA_CONFIGS, RasaLabel, Annotation, StudentProfile } from '@/types/database'
+import { EMOTION_CONFIGS, EmotionLabel, Annotation, StudentProfile } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 
 interface SpectrumProps {
@@ -53,12 +53,12 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
     const segments: { 
       start: number, 
       end: number, 
-      majorityLabel: RasaLabel | null, 
+      majorityLabel: EmotionLabel | null, 
       agreement: number,
-      allEmotions: { label: RasaLabel, count: number }[]
+      allEmotions: { label: EmotionLabel, count: number }[]
     }[] = []
 
-    let currentEmotions: { label: RasaLabel, count: number }[] = []
+    let currentEmotions: { label: EmotionLabel, count: number }[] = []
     let start = 0
 
     charMap.forEach((freqs, i) => {
@@ -66,7 +66,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
         .filter(([, count]) => count > 0)
         .sort((a, b) => b[1] - a[1])
         .map(([label, count]) => ({
-          label: label as RasaLabel,
+          label: label as EmotionLabel,
           count
         }))
       
@@ -106,15 +106,15 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
     return students.map(student => {
       const studentAnns = annotations.filter(a => a.student_id === student.id)
       
-      const charEmotions = Array.from({ length: textLength }, () => [] as RasaLabel[])
+      const charEmotions = Array.from({ length: textLength }, () => [] as EmotionLabel[])
       studentAnns.forEach(ann => {
         for (let i = ann.start_offset; i < ann.end_offset; i++) {
           if (i < textLength) charEmotions[i].push(ann.rasa_label)
         }
       })
 
-      const segments: { start: number, end: number, emotions: RasaLabel[] }[] = []
-      let currentEmotions: RasaLabel[] = []
+      const segments: { start: number, end: number, emotions: EmotionLabel[] }[] = []
+      let currentEmotions: EmotionLabel[] = []
       let start = 0
 
       charEmotions.forEach((emotions, i) => {
@@ -196,7 +196,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                         y={0}
                         width={seg.end - seg.start}
                         height={60}
-                        fill={RASA_CONFIGS[em.label].color}
+                        fill={EMOTION_CONFIGS[em.label].color}
                         style={{ mixBlendMode: 'multiply' }}
                         opacity={0.3 + (em.count / students.length) * 0.6}
                         className="pointer-events-none"
@@ -213,8 +213,8 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                       onMouseMove={(e) => handleMouseMove(e, {
                         studentName: 'Class Consensus',
                         emotions: seg.allEmotions.map(em => ({
-                          name: RASA_CONFIGS[em.label].name,
-                          color: RASA_CONFIGS[em.label].color,
+                          name: EMOTION_CONFIGS[em.label].name,
+                          color: EMOTION_CONFIGS[em.label].color,
                           agreement: `${em.count}/${students.length} students`
                         })),
                         passage: text.substring(seg.start, seg.end)
@@ -294,7 +294,7 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                           y={0}
                           width={ann.end_offset - ann.start_offset}
                           height={BAND_HEIGHT}
-                          fill={RASA_CONFIGS[ann.rasa_label].color}
+                          fill={EMOTION_CONFIGS[ann.rasa_label].color}
                           style={{ mixBlendMode: 'multiply' }}
                           className="opacity-80 pointer-events-none"
                         />
@@ -313,8 +313,8 @@ export default function SpectrumVisualizer({ text, annotations, students }: Spec
                           onMouseMove={(e) => handleMouseMove(e, {
                             studentName: `${student.first_name} ${student.last_name}`,
                             emotions: seg.emotions.map(label => ({
-                              name: RASA_CONFIGS[label].name,
-                              color: RASA_CONFIGS[label].color
+                              name: EMOTION_CONFIGS[label].name,
+                              color: EMOTION_CONFIGS[label].color
                             })),
                             passage: text.substring(seg.start, seg.end)
                           })}
