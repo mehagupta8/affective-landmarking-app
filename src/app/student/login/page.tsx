@@ -22,11 +22,27 @@ export default function StudentLoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {
       setError(signInError.message)
       setLoading(false)
       return
+    }
+
+    // Block teachers from using the student login
+    if (data.user) {
+      const { data: teacherProfile } = await supabase
+        .from('teacher_profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      if (teacherProfile) {
+        await supabase.auth.signOut()
+        setError('These are teacher credentials. Please use the teacher login page.')
+        setLoading(false)
+        return
+      }
     }
 
     router.push('/student/dashboard')
