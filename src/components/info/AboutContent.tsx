@@ -6,7 +6,7 @@ export function AboutContent() {
       <section className="space-y-6">
         <h2 className="text-3xl font-normal text-charcoal">What this app does</h2>
         <p className="text-lg text-charcoal/80 leading-relaxed font-light">
-          Affective Landmarking lets readers annotate texts line-by-line with color-coded emotional labels (drawn from the eight Rasas of classical Indian aesthetics: fear, joy, anger, wonder, disgust, love, heroism, sadness) as they read. Once finished, the app turns those annotations into a visual color spectrum, a map of how emotions shift, cluster, and overlap across a text. Instead of summarizing &quot;what a text means&quot; after the fact, it captures the live, in-the-moment experience of reading.
+          Affective Landmarking lets readers annotate texts line-by-line with color-coded emotional labels (drawn from the eight emotions of classical Indian aesthetics: fear, joy, anger, wonder, disgust, love, heroism, sadness) as they read. Once finished, the app turns those annotations into a visual color spectrum, a map of how emotions shift, cluster, and overlap across a text. Instead of summarizing &quot;what a text means&quot; after the fact, it captures the live, in-the-moment experience of reading.
         </p>
       </section>
 

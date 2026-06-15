@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { AffectiveStats } from '@/lib/utils/statistics'
-import { Annotation, RASA_CONFIGS } from '@/types/database'
+import { Annotation, EMOTION_CONFIGS } from '@/types/database'
 import { GlassCard } from '../ui/GlassCard'
 import { TrendingUp, Users, Layers, Zap, Info } from 'lucide-react'
 
@@ -47,7 +47,7 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
           <span 
             key={ann.id}
             style={{
-              backgroundColor: RASA_CONFIGS[ann.rasa_label].color,
+              backgroundColor: EMOTION_CONFIGS[ann.rasa_label].color,
               mixBlendMode: 'multiply',
               boxDecorationBreak: 'clone',
               WebkitBoxDecorationBreak: 'clone',
@@ -135,13 +135,13 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
                   className="flex-1 rounded-t-lg transition-all duration-700 relative group"
                   style={{ 
                     height: spike ? `${Math.min(100, (spike.intensity / 4) * 100)}%` : '10%',
-                    backgroundColor: spike ? RASA_CONFIGS[spike.emotions[0]].color : '#2A262205'
+                    backgroundColor: spike ? EMOTION_CONFIGS[spike.emotions[0]].color : '#2A262205'
                   }}
                 >
                   {spike && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20">
                       <div className="bg-charcoal text-white text-[9px] px-2 py-1 rounded whitespace-nowrap uppercase tracking-widest">
-                        {spike.emotions.map(e => RASA_CONFIGS[e].name).join(' + ')}
+                        {spike.emotions.map(e => EMOTION_CONFIGS[e].name).join(' + ')}
                       </div>
                     </div>
                   )}
@@ -171,15 +171,15 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
             {coOccurrences.map((co, idx) => (
               <div key={idx} className="flex items-center gap-4 bg-white/20 p-4 rounded-2xl border border-white/40">
                 <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: RASA_CONFIGS[co.emotionA].color }} />
-                  <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: RASA_CONFIGS[co.emotionB].color }} />
+                  <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: EMOTION_CONFIGS[co.emotionA].color }} />
+                  <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: EMOTION_CONFIGS[co.emotionB].color }} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-charcoal font-medium">
-                    {RASA_CONFIGS[co.emotionA].name} + {RASA_CONFIGS[co.emotionB].name}
+                    {EMOTION_CONFIGS[co.emotionA].name} + {EMOTION_CONFIGS[co.emotionB].name}
                   </p>
                   <p className="text-xs text-warm-grey">
-                    {Math.round(co.overlapPercentage)}% of {RASA_CONFIGS[co.emotionA].name} overlapped with {RASA_CONFIGS[co.emotionB].name}
+                    {Math.round(co.overlapPercentage)}% of {EMOTION_CONFIGS[co.emotionA].name} overlapped with {EMOTION_CONFIGS[co.emotionB].name}
                   </p>
                 </div>
               </div>
@@ -236,8 +236,8 @@ export default function StatsDashboard({ text, annotations, studentCount = 1 }: 
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-charcoal/5 mt-4">
                     {seg.labels.map(l => (
                       <div key={l.label} className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-full text-[10px] font-bold text-charcoal/60 border border-white/80 shadow-sm">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: RASA_CONFIGS[l.label].color }} />
-                        {RASA_CONFIGS[l.label].name} ({l.count})
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: EMOTION_CONFIGS[l.label].color }} />
+                        {EMOTION_CONFIGS[l.label].name} ({l.count})
                       </div>
                     ))}
                   </div>

@@ -13,7 +13,7 @@ import {
   Send,
   AlertTriangle
 } from 'lucide-react'
-import { Text, StudentProfile, Annotation, RASA_CONFIGS, RasaLabel } from '@/types/database'
+import { Text, StudentProfile, Annotation, EMOTION_CONFIGS, EmotionLabel } from '@/types/database'
 
 interface GuestInfo { id: string; display_name: string; class_id: string; submitted_texts: string[] }
 import { cn } from '@/lib/utils'
@@ -159,7 +159,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
     setTimeout(handleMouseUp, 50)
   }
 
-  const createAnnotation = async (label: RasaLabel) => {
+  const createAnnotation = async (label: EmotionLabel) => {
     if (!selection || (!student && !guest) || !textId || isLocked) return
     
     setSaving(true)
@@ -277,7 +277,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           <span 
             key={ann.id}
             style={{
-              backgroundColor: RASA_CONFIGS[ann.rasa_label].color,
+              backgroundColor: EMOTION_CONFIGS[ann.rasa_label].color,
               mixBlendMode: 'multiply',
               boxDecorationBreak: 'clone',
               WebkitBoxDecorationBreak: 'clone',
@@ -516,8 +516,8 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
           >
             <GlassCard className="w-[220px] p-2 flex flex-col shadow-2xl border-white/60">
               <div className="flex flex-col max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-charcoal/10">
-                {(Object.keys(RASA_CONFIGS) as RasaLabel[]).map(label => {
-                  const config = RASA_CONFIGS[label]
+                {(Object.keys(EMOTION_CONFIGS) as EmotionLabel[]).map(label => {
+                  const config = EMOTION_CONFIGS[label]
                   return (
                     <button
                       key={label}
@@ -563,7 +563,7 @@ export default function AnnotationPage({ params }: { params: Promise<{ textId: s
               </div>
               <div className="flex flex-col max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-charcoal/10">
                 {activeGroup.anns.map(ann => {
-                  const config = RASA_CONFIGS[ann.rasa_label]
+                  const config = EMOTION_CONFIGS[ann.rasa_label]
                   return (
                     <div
                       key={ann.id}

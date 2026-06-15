@@ -1,4 +1,4 @@
-export type RasaLabel = 
+export type EmotionLabel = 
   | 'fear' 
   | 'joy' 
   | 'anger' 
@@ -8,14 +8,14 @@ export type RasaLabel =
   | 'heroism' 
   | 'sadness';
 
-export interface RasaConfig {
-  label: RasaLabel;
+export interface EmotionConfig {
+  label: EmotionLabel;
   color: string;
   name: string;
   sanskrit: string;
 }
 
-export const RASA_CONFIGS: Record<RasaLabel, RasaConfig> = {
+export const EMOTION_CONFIGS: Record<EmotionLabel, EmotionConfig> = {
   fear: { label: 'fear', color: '#191910', name: 'Fear', sanskrit: 'Bhayanaka' },
   joy: { label: 'joy', color: '#FFC0CB', name: 'Joy', sanskrit: 'Hasya' },
   anger: { label: 'anger', color: '#E14747', name: 'Anger', sanskrit: 'Raudra' },
@@ -74,7 +74,7 @@ export interface Annotation {
   student_id: string;
   start_offset: number;
   end_offset: number;
-  rasa_label: RasaLabel;
+  rasa_label: EmotionLabel;
   created_at: string;
 }
 
@@ -84,7 +84,7 @@ export interface WritingSubmission {
   student_id: string;
   content: string;
   prompt_type: 'choice' | 'random';
-  selected_emotion: RasaLabel | null;
+  selected_emotion: EmotionLabel | null;
   selected_annotation_ids: string[] | null;
   created_at: string;
 }
