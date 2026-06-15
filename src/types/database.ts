@@ -71,7 +71,8 @@ export interface Student {
 export interface Annotation {
   id: string;
   text_id: string;
-  student_id: string;
+  student_id: string | null;
+  guest_id: string | null;
   start_offset: number;
   end_offset: number;
   rasa_label: EmotionLabel;

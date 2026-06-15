@@ -20,9 +20,10 @@ import {
   Trash2,
   UserMinus,
   UserPlus,
-  AlertCircle
+  AlertCircle,
+  Ghost
 } from 'lucide-react'
-import { Class, Text, StudentProfile, Annotation } from '@/types/database'
+import { Class, Text, StudentProfile, Annotation, GuestSession } from '@/types/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { GlassButton } from '@/components/ui/GlassButton'
@@ -33,6 +34,7 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
   const [cls, setCls] = useState<Class | null>(null)
   const [texts, setTexts] = useState<Text[]>([])
   const [students, setStudents] = useState<StudentProfile[]>([])
+  const [guests, setGuests] = useState<GuestSession[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'texts' | 'students' | 'progress' | 'manage'>('texts')
@@ -106,6 +108,13 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
           .in('text_id', textIds)
         setAnnotations(annData || [])
       }
+
+      const { data: guestData } = await supabase
+        .from('guest_sessions')
+        .select('*')
+        .eq('class_id', classId)
+        .order('created_at', { ascending: false })
+      setGuests(guestData || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -214,6 +223,23 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
     }
   }
 
+  const calculateGuestProgress = (guestId: string, textId: string) => {
+    const guestAnns = annotations.filter(a => a.guest_id === guestId && a.text_id === textId)
+    const text = texts.find(t => t.id === textId)
+    if (!text || text.content.length === 0) return 0
+    const intervals = guestAnns.map(a => [a.start_offset, a.end_offset]).sort((a, b) => a[0] - b[0])
+    if (intervals.length === 0) return 0
+    const merged = [intervals[0]]
+    for (let i = 1; i < intervals.length; i++) {
+      const prev = merged[merged.length - 1]
+      const curr = intervals[i]
+      if (curr[0] <= prev[1]) prev[1] = Math.max(prev[1], curr[1])
+      else merged.push(curr)
+    }
+    const totalCovered = merged.reduce((acc, [start, end]) => acc + (end - start), 0)
+    return Math.min(100, Math.round((totalCovered / text.content.length) * 100))
+  }
+
   const calculateStudentProgress = (studentId: string, textId: string) => {
     const studentAnns = annotations.filter(a => a.student_id === studentId && a.text_id === textId)
     const text = texts.find(t => t.id === textId)
@@ -274,8 +300,8 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
       <div className="flex flex-wrap gap-6 md:gap-10 border-b border-charcoal/5 mb-8">
         {[
           { id: 'texts', label: 'Texts', count: texts.length, icon: BookOpen },
-          { id: 'students', label: 'Students', count: students.length, icon: Users },
-          { id: 'progress', label: 'Progress', count: students.length, icon: TrendingUp },
+          { id: 'students', label: 'Students', count: students.length + guests.length, icon: Users },
+          { id: 'progress', label: 'Progress', count: students.length + guests.length, icon: TrendingUp },
           { id: 'manage', label: 'Manage', count: null, icon: Settings }
         ].map(tab => (
           <button
@@ -483,45 +509,85 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
           </div>
         </div>
       ) : activeTab === 'students' ? (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <h2 className="text-4xl text-charcoal font-light">Enrolled Students</h2>
-          <GlassCard className="p-0 shadow-lg border-white/40 overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/40 border-b border-white/60">
-                  <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Name</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Joined Date</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em] text-right">Login</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/20">
-                {students.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-10 py-32 text-center text-warm-grey font-light text-xl opacity-60">
-                      Waiting for students to enter the shared space.
-                    </td>
+        <div className="space-y-10 animate-in fade-in duration-500">
+          <div className="space-y-4">
+            <h2 className="text-4xl text-charcoal font-light">Enrolled Students</h2>
+            <GlassCard className="p-0 shadow-lg border-white/40 overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-white/40 border-b border-white/60">
+                    <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Name</th>
+                    <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Joined Date</th>
+                    <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em] text-right">Login</th>
                   </tr>
-                ) : (
-                  students.map((student) => (
-                    <tr key={student.id} className="hover:bg-white/30 transition-colors group">
-                      <td className="px-10 py-6 text-xl text-charcoal group-hover:text-terracotta transition-colors">{student.first_name} {student.last_name}</td>
-                      <td className="px-10 py-6 text-base text-warm-grey/80">
-                        {new Date(student.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 bg-white/40 px-3 py-1 rounded-full border border-white/60">
-                          <>
-                            <Mail className="w-3 h-3" />
-                            Google
-                          </>
-                        </span>
+                </thead>
+                <tbody className="divide-y divide-white/20">
+                  {students.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-10 py-32 text-center text-warm-grey font-light text-xl opacity-60">
+                        Waiting for students to enter the shared space.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </GlassCard>
+                  ) : (
+                    students.map((student) => (
+                      <tr key={student.id} className="hover:bg-white/30 transition-colors group">
+                        <td className="px-10 py-6 text-xl text-charcoal group-hover:text-terracotta transition-colors">{student.first_name} {student.last_name}</td>
+                        <td className="px-10 py-6 text-base text-warm-grey/80">
+                          {new Date(student.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-10 py-6 text-right">
+                          <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 bg-white/40 px-3 py-1 rounded-full border border-white/60">
+                            <Mail className="w-3 h-3" />
+                            Google
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </GlassCard>
+          </div>
+
+          {guests.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-4xl text-charcoal font-light flex items-center gap-3">
+                Guest Sessions
+                <span className="text-base font-normal text-warm-grey/50">(anonymous)</span>
+              </h2>
+              <GlassCard className="p-0 shadow-lg border-white/40 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white/40 border-b border-white/60">
+                      <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Display Name</th>
+                      <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Joined</th>
+                      <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em]">Texts Submitted</th>
+                      <th className="px-10 py-6 text-[10px] font-bold text-warm-grey/60 uppercase tracking-[0.2em] text-right">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/20">
+                    {guests.map((guest) => (
+                      <tr key={guest.id} className="hover:bg-white/30 transition-colors group">
+                        <td className="px-10 py-6 text-xl text-charcoal group-hover:text-terracotta transition-colors">{guest.display_name}</td>
+                        <td className="px-10 py-6 text-base text-warm-grey/80">
+                          {new Date(guest.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-10 py-6 text-base text-warm-grey/80">
+                          {(guest.submitted_texts || []).length} / {texts.length}
+                        </td>
+                        <td className="px-10 py-6 text-right">
+                          <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-warm-grey/40 bg-white/40 px-3 py-1 rounded-full border border-white/60">
+                            <Ghost className="w-3 h-3" />
+                            Guest
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </GlassCard>
+            </div>
+          )}
         </div>
       ) : activeTab === 'progress' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -540,53 +606,98 @@ export default function ClassDetails({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="grid grid-cols-1 gap-8">
-            {students.length === 0 ? (
+            {students.length === 0 && guests.length === 0 ? (
               <GlassCard className="py-24 text-center border-dashed border-2 border-white/30 bg-white/10">
                 <Users className="w-16 h-16 text-warm-grey/40 mx-auto mb-6" />
                 <p className="text-warm-grey text-xl font-light">No students enrolled yet.</p>
               </GlassCard>
             ) : (
-              students.map((student) => (
-                <GlassCard key={student.id} className="p-10 shadow-sm border-white/40">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-terracotta/20 to-terracotta/5 flex items-center justify-center text-terracotta font-bold text-xl border border-terracotta/10">
-                        {student.first_name.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="text-2xl text-charcoal font-normal">{student.first_name} {student.last_name}</h3>
-                        <p className="text-sm text-warm-grey/60">Individual annotation metrics</p>
+              <>
+                {students.map((student) => (
+                  <GlassCard key={student.id} className="p-10 shadow-sm border-white/40">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-terracotta/20 to-terracotta/5 flex items-center justify-center text-terracotta font-bold text-xl border border-terracotta/10">
+                          {student.first_name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="text-2xl text-charcoal font-normal">{student.first_name} {student.last_name}</h3>
+                          <p className="text-sm text-warm-grey/60">Individual annotation metrics</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {texts.map((text) => {
-                      const progress = calculateStudentProgress(student.id, text.id)
-                      return (
-                        <div key={text.id} className="bg-white/30 rounded-2xl p-6 border border-white/40">
-                          <div className="flex justify-between items-start mb-4">
-                            <span className="text-sm font-medium text-charcoal/80 line-clamp-1 pr-4">{text.title}</span>
-                            {progress === 100 && <CheckCircle2 className="w-4 h-4 text-terracotta shrink-0" />}
-                          </div>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-end">
-                              <span className="text-3xl font-light text-charcoal">{progress}%</span>
-                              <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-wider mb-1">Coverage</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {texts.map((text) => {
+                        const progress = calculateStudentProgress(student.id, text.id)
+                        return (
+                          <div key={text.id} className="bg-white/30 rounded-2xl p-6 border border-white/40">
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="text-sm font-medium text-charcoal/80 line-clamp-1 pr-4">{text.title}</span>
+                              {progress === 100 && <CheckCircle2 className="w-4 h-4 text-terracotta shrink-0" />}
                             </div>
-                            <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-terracotta transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(232,155,108,0.4)]"
-                                style={{ width: `${progress}%`, opacity: 0.3 + (progress / 100) * 0.7 }}
-                              />
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-end">
+                                <span className="text-3xl font-light text-charcoal">{progress}%</span>
+                                <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-wider mb-1">Coverage</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-terracotta transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(232,155,108,0.4)]"
+                                  style={{ width: `${progress}%`, opacity: 0.3 + (progress / 100) * 0.7 }}
+                                />
+                              </div>
                             </div>
                           </div>
+                        )
+                      })}
+                    </div>
+                  </GlassCard>
+                ))}
+
+                {guests.map((guest) => (
+                  <GlassCard key={guest.id} className="p-10 shadow-sm border-white/40 border-dashed">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-warm-grey/10 flex items-center justify-center border border-warm-grey/20">
+                          <Ghost className="w-5 h-5 text-warm-grey/50" />
                         </div>
-                      )
-                    })}
-                  </div>
-                </GlassCard>
-              ))
+                        <div>
+                          <h3 className="text-2xl text-charcoal font-normal">{guest.display_name}</h3>
+                          <p className="text-sm text-warm-grey/60">Guest · joined {new Date(guest.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {texts.map((text) => {
+                        const progress = calculateGuestProgress(guest.id, text.id)
+                        const submitted = (guest.submitted_texts || []).includes(text.id)
+                        return (
+                          <div key={text.id} className="bg-white/20 rounded-2xl p-6 border border-white/30">
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="text-sm font-medium text-charcoal/80 line-clamp-1 pr-4">{text.title}</span>
+                              {submitted && <CheckCircle2 className="w-4 h-4 text-terracotta shrink-0" />}
+                            </div>
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-end">
+                                <span className="text-3xl font-light text-charcoal">{progress}%</span>
+                                <span className="text-[10px] font-bold text-warm-grey/40 uppercase tracking-wider mb-1">Coverage</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-warm-grey/40 transition-all duration-1000 ease-out"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </GlassCard>
+                ))}
+              </>
             )}
           </div>
         </div>
