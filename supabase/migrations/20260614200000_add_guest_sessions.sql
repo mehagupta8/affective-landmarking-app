@@ -43,6 +43,13 @@ ALTER TABLE annotations ADD COLUMN IF NOT EXISTS guest_id UUID REFERENCES guest_
 -- 4. Add nullable guest_id to writing_submissions
 ALTER TABLE writing_submissions ADD COLUMN IF NOT EXISTS guest_id UUID REFERENCES guest_sessions(id) ON DELETE CASCADE;
 
+-- 4b. Guest annotation policies (anon key, no auth.uid())
+CREATE POLICY "Guests manage own annotations" ON annotations
+  FOR ALL USING (guest_id IS NOT NULL) WITH CHECK (guest_id IS NOT NULL);
+
+CREATE POLICY "Guests manage own writing" ON writing_submissions
+  FOR ALL USING (guest_id IS NOT NULL) WITH CHECK (guest_id IS NOT NULL);
+
 -- 5. Index for lookups
 CREATE INDEX idx_guest_sessions_class ON guest_sessions (class_id);
 CREATE INDEX idx_annotations_guest ON annotations (guest_id);
